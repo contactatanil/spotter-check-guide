@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock, FileText, Download, Eye, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CheckCircle, XCircle, Clock, FileText, Download, Eye, Users, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentSelector from './StudentSelector';
 import MultiStudentObservation from './MultiStudentObservation';
+import PrintReport from './PrintReport';
 
 interface ChecklistItem {
   id: string;
@@ -42,6 +43,7 @@ const AssessorInterface: React.FC<AssessorInterfaceProps> = ({ checklist, onUpda
   const [assessorNotes, setAssessorNotes] = useState<{ [key: string]: string }>({});
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [observationMode, setObservationMode] = useState<'assessment' | 'student_selection' | 'observation'>('assessment');
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   // Mock student data - in real implementation, this would come from Moodle
   const mockStudents: Student[] = [
@@ -78,6 +80,13 @@ const AssessorInterface: React.FC<AssessorInterfaceProps> = ({ checklist, onUpda
       lastActivity: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     }
   ];
+
+  const mockStudent = {
+    id: '1',
+    name: 'Current Student',
+    email: 'student@example.com',
+    course: 'Workplace Skills Training'
+  };
 
   const handleAssessment = (itemId: string, assessment: 'satisfactory' | 'not_satisfactory') => {
     const notes = assessorNotes[itemId] || '';
@@ -177,13 +186,35 @@ const AssessorInterface: React.FC<AssessorInterfaceProps> = ({ checklist, onUpda
             <h2 className="text-2xl font-bold mb-2">Assessment Dashboard</h2>
             <p className="text-gray-600">Review student submissions and conduct live observations.</p>
           </div>
-          <Button 
-            onClick={() => setObservationMode('student_selection')}
-            className="flex items-center gap-2"
-          >
-            <Users className="w-4 h-4" />
-            Start Live Observation
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Printer className="w-4 h-4" />
+                  Print Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Trainer Assessment Report</DialogTitle>
+                </DialogHeader>
+                <PrintReport 
+                  checklist={checklist} 
+                  student={mockStudent}
+                  isTrainerView={true}
+                  onClose={() => setShowPrintDialog(false)}
+                />
+              </DialogContent>
+            </Dialog>
+            
+            <Button 
+              onClick={() => setObservationMode('student_selection')}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Start Live Observation
+            </Button>
+          </div>
         </div>
         
         {pendingItems.length > 0 && (
@@ -382,6 +413,7 @@ const AssessorInterface: React.FC<AssessorInterfaceProps> = ({ checklist, onUpda
                 <li>• Students can resubmit evidence after receiving feedback</li>
                 <li>• You can reassess items at any time by clicking "Reassess"</li>
                 <li>• Use "Start Live Observation" to observe multiple students simultaneously</li>
+                <li>• Use "Print Report" to generate comprehensive assessment reports</li>
               </ul>
             </CardContent>
           </Card>

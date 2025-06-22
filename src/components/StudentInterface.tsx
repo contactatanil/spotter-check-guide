@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, CheckCircle, Clock, AlertCircle, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Upload, FileText, CheckCircle, Clock, AlertCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import PrintReport from './PrintReport';
 
 interface ChecklistItem {
   id: string;
@@ -29,6 +31,7 @@ interface StudentInterfaceProps {
 const StudentInterface: React.FC<StudentInterfaceProps> = ({ checklist, onUpdateItem }) => {
   const [selectedFiles, setSelectedFiles] = useState<{ [key: string]: File[] }>({});
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const handleFileUpload = (itemId: string, files: FileList | null) => {
     if (!files) return;
@@ -98,11 +101,47 @@ const StudentInterface: React.FC<StudentInterfaceProps> = ({ checklist, onUpdate
     }
   };
 
+  const hasCompletedObservations = checklist.some(item => 
+    item.status === 'satisfactory' || item.status === 'not_satisfactory'
+  );
+
+  const mockStudent = {
+    id: '1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    course: 'Workplace Skills Training'
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">My Assessment Progress</h2>
-        <p className="text-gray-600">Upload evidence and track your progress through each assessment item.</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">My Assessment Progress</h2>
+            <p className="text-gray-600">Upload evidence and track your progress through each assessment item.</p>
+          </div>
+          
+          {hasCompletedObservations && (
+            <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Printer className="w-4 h-4" />
+                  Print Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Assessment Report</DialogTitle>
+                </DialogHeader>
+                <PrintReport 
+                  checklist={checklist} 
+                  student={mockStudent}
+                  onClose={() => setShowPrintDialog(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       {checklist.map(item => (
@@ -126,74 +165,94 @@ const StudentInterface: React.FC<StudentInterfaceProps> = ({ checklist, onUpdate
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Evidence Upload Section */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Upload Evidence</Label>
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-gray-600 mb-2">
-                  Drag and drop files here, or click to select
-                </p>
-                <Input
-                  type="file"
-                  multiple
-                  onChange={(e) => handleFileUpload(item.id, e.target.files)}
-                  className="hidden"
-                  id={`file-upload-${item.id}`}
-                />
-                <Label
-                  htmlFor={`file-upload-${item.id}`}
-                  className="cursor-pointer"
-                >
-                  <Button variant="outline" size="sm" asChild>
-                    <span>Select Files</span>
-                  </Button>
-                </Label>
-              </div>
-
-              {/* Uploaded Files */}
-              {selectedFiles[item.id] && selectedFiles[item.id].length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Uploaded Files:</Label>
-                  {selectedFiles[item.id].map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-gray-500">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(item.id, index)}
-                      >
-                        Remove
+            {/* Only show evidence upload for items that haven't been assessed */}
+            {(item.status === 'not_started' || item.status === 'in_progress') && (
+              <>
+                {/* Evidence Upload Section */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Upload Evidence</Label>
+                  
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Drag and drop files here, or click to select
+                    </p>
+                    <Input
+                      type="file"
+                      multiple
+                      onChange={(e) => handleFileUpload(item.id, e.target.files)}
+                      className="hidden"
+                      id={`file-upload-${item.id}`}
+                    />
+                    <Label
+                      htmlFor={`file-upload-${item.id}`}
+                      className="cursor-pointer"
+                    >
+                      <Button variant="outline" size="sm" asChild>
+                        <span>Select Files</span>
                       </Button>
+                    </Label>
+                  </div>
+
+                  {/* Uploaded Files */}
+                  {selectedFiles[item.id] && selectedFiles[item.id].length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Uploaded Files:</Label>
+                      {selectedFiles[item.id].map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="text-sm">{file.name}</span>
+                            <span className="text-xs text-gray-500">
+                              ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(item.id, index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Notes Section */}
-            <div className="space-y-2">
-              <Label htmlFor={`notes-${item.id}`} className="text-sm font-medium">
-                Additional Notes (Optional)
-              </Label>
-              <Textarea
-                id={`notes-${item.id}`}
-                placeholder="Add any additional context or notes about your evidence..."
-                value={notes[item.id] || ''}
-                onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                rows={3}
-              />
-            </div>
+                {/* Notes Section */}
+                <div className="space-y-2">
+                  <Label htmlFor={`notes-${item.id}`} className="text-sm font-medium">
+                    Additional Notes (Optional)
+                  </Label>
+                  <Textarea
+                    id={`notes-${item.id}`}
+                    placeholder="Add any additional context or notes about your evidence..."
+                    value={notes[item.id] || ''}
+                    onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
 
-            {/* Assessment Feedback */}
-            {item.status === 'satisfactory' || item.status === 'not_satisfactory' ? (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => submitEvidence(item.id)}
+                    disabled={(!selectedFiles[item.id] || selectedFiles[item.id].length === 0) && !notes[item.id]?.trim()}
+                    className="flex-1"
+                  >
+                    Submit Evidence
+                  </Button>
+                  {item.status === 'in_progress' && (
+                    <Badge variant="secondary" className="px-3 py-1">
+                      Awaiting Assessment
+                    </Badge>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Assessment Feedback - Read Only */}
+            {(item.status === 'satisfactory' || item.status === 'not_satisfactory') && (
               <div className={`p-4 rounded-lg ${
                 item.status === 'satisfactory' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
               }`}>
@@ -215,21 +274,6 @@ const StudentInterface: React.FC<StudentInterfaceProps> = ({ checklist, onUpdate
                   </p>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => submitEvidence(item.id)}
-                  disabled={(!selectedFiles[item.id] || selectedFiles[item.id].length === 0) && !notes[item.id]?.trim()}
-                  className="flex-1"
-                >
-                  Submit Evidence
-                </Button>
-                {item.status === 'in_progress' && (
-                  <Badge variant="secondary" className="px-3 py-1">
-                    Awaiting Assessment
-                  </Badge>
-                )}
-              </div>
             )}
           </CardContent>
         </Card>
@@ -238,11 +282,12 @@ const StudentInterface: React.FC<StudentInterfaceProps> = ({ checklist, onUpdate
       {/* Help Section */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-4">
-          <h3 className="font-medium mb-2">Need Help?</h3>
+          <h3 className="font-medium mb-2">Important Information</h3>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>• Upload photos, videos, documents, or other files as evidence</li>
-            <li>• Each item will be marked as Satisfactory or Not Satisfactory by your assessor</li>
+            <li>• Only assessors can mark items as Satisfactory or Not Satisfactory</li>
             <li>• You can resubmit evidence if an item needs improvement</li>
+            <li>• Print your completed assessment report using the "Print Report" button</li>
             <li>• Contact your assessor if you have questions about requirements</li>
           </ul>
         </CardContent>
