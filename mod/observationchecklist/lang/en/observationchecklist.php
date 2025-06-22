@@ -1,6 +1,7 @@
-
 <?php
 // This file is part of Moodle - http://moodle.org/
+
+defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Observation Checklist';
 $string['modulename'] = 'Observation Checklist';
@@ -57,3 +58,18 @@ $string['privacy:metadata:observationchecklist_user_items:userid'] = 'The ID of 
 $string['privacy:metadata:observationchecklist_user_items:status'] = 'The completion status of the item.';
 $string['privacy:metadata:observationchecklist_user_items:assessornotes'] = 'Notes added by the assessor.';
 $string['privacy:metadata:observationchecklist_user_items:dateassessed'] = 'The date when the item was assessed.';
+
+// Multi-student observation strings
+$string['multistudentobservation'] = 'Multi-Student Observation';
+$string['observingmultiplestudents'] = 'Observe multiple students simultaneously';
+$string['selectstudents'] = 'Select Students';
+$string['selectedstudents'] = 'Selected Students';
+$string['selectstudentsfirst'] = 'Select Students First';
+$string['selectstudentsdescription'] = 'Choose students from the checkboxes above to begin multi-student observation.';
+$string['saveallassessments'] = 'Save All Assessments';
+$string['observationnotes'] = 'Observation Notes';
+$string['recordobservations'] = 'Record observations...';
+$string['notobserved'] = 'Not Observed';
+$string['multiobservationssaved'] = '{$a} observations saved successfully';
+$string['noobservationssaved'] = 'No observations were saved';
+$string['reset'] = 'Reset';

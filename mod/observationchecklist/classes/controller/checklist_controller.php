@@ -73,6 +73,75 @@ class checklist_controller {
     }
     
     /**
+     * Handle multi-student actions
+     */
+    public function handle_multi_student_action($action, $studentids = []) {
+        global $USER;
+        
+        if (!$action || !confirm_sesskey()) {
+            return false;
+        }
+        
+        switch ($action) {
+            case 'save_multi_observations':
+                return $this->handle_save_multi_observations();
+                
+            default:
+                return false;
+        }
+    }
+    
+    /**
+     * Handle save multiple observations
+     */
+    private function handle_save_multi_observations() {
+        global $DB;
+        
+        require_capability('mod/observationchecklist:assess', $this->context);
+        
+        $observations = required_param('observations', PARAM_RAW);
+        $observations = json_decode($observations, true);
+        
+        if (!$observations || !is_array($observations)) {
+            return false;
+        }
+        
+        $success_count = 0;
+        
+        foreach ($observations as $observation) {
+            if (isset($observation['studentId'], $observation['itemId'], $observation['status'])) {
+                $itemid = (int)$observation['itemId'];
+                $studentid = (int)$observation['studentId'];
+                $status = clean_param($observation['status'], PARAM_ALPHA);
+                $notes = isset($observation['notes']) ? clean_param($observation['notes'], PARAM_TEXT) : '';
+                
+                if (observationchecklist_assess_item($itemid, $studentid, $status, $notes, $GLOBALS['USER']->id)) {
+                    $success_count++;
+                    
+                    // Trigger event for each assessment
+                    $event = assessment_made::create(array(
+                        'objectid' => $itemid,
+                        'context' => $this->context,
+                        'relateduserid' => $studentid,
+                        'other' => array(
+                            'status' => $status,
+                            'checklistid' => $this->checklist->id,
+                            'multi_student' => true
+                        )
+                    ));
+                    $event->trigger();
+                }
+            }
+        }
+        
+        if ($success_count > 0) {
+            redirect($this->page->url, get_string('multiobservationssaved', 'mod_observationchecklist', $success_count));
+        } else {
+            redirect($this->page->url, get_string('noobservationssaved', 'mod_observationchecklist'), null, \core\output\notification::NOTIFY_ERROR);
+        }
+    }
+    
+    /**
      * Handle add item action
      */
     private function handle_add_item() {
@@ -143,4 +212,3 @@ class checklist_controller {
         redirect($this->page->url, get_string('itemdeleted', 'mod_observationchecklist'));
     }
 }
-

@@ -1,0 +1,132 @@
+
+<div class="multi-student-observation-container" data-cmid="{{cmid}}">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fa fa-users"></i>
+                {{#str}}multistudentobservation, mod_observationchecklist{{/str}}
+            </h2>
+            <p class="text-muted">{{#str}}observingmultiplestudents, mod_observationchecklist{{/str}}</p>
+        </div>
+        <div class="btn-group">
+            <a href="{{actionurl}}" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left"></i> {{#str}}back{{/str}}
+            </a>
+            <button id="save-all-observations" class="btn btn-success" disabled>
+                <i class="fa fa-save"></i> {{#str}}saveallassessments, mod_observationchecklist{{/str}}
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Selection -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fa fa-user-check"></i>
+                {{#str}}selectstudents, mod_observationchecklist{{/str}}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="student-selection-grid">
+                        {{#students}}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input student-checkbox" type="checkbox" 
+                                   id="student-{{id}}" value="{{id}}" data-student-name="{{firstname}} {{lastname}}">
+                            <label class="form-check-label" for="student-{{id}}">
+                                {{firstname}} {{lastname}}
+                            </label>
+                        </div>
+                        {{/students}}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="selected-students-summary">
+                        <h6>{{#str}}selectedstudents, mod_observationchecklist{{/str}}: <span id="selected-count">0</span></h6>
+                        <div id="selected-students-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observation Grid -->
+    <div id="observation-grid" style="display: none;">
+        {{#items}}
+        <div class="card mb-4 observation-item" data-item-id="{{id}}">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{itemtext}}</h5>
+                        <span class="badge badge-outline-secondary">{{category}}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="student-observation-grid" id="item-{{id}}-grid">
+                    <!-- Student observation cards will be inserted here via JavaScript -->
+                </div>
+            </div>
+        </div>
+        {{/items}}
+    </div>
+
+    <!-- No Students Selected Message -->
+    <div id="no-students-message" class="card">
+        <div class="card-body text-center py-5">
+            <i class="fa fa-user-plus fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">{{#str}}selectstudentsfirst, mod_observationchecklist{{/str}}</h5>
+            <p class="text-muted">{{#str}}selectstudentsdescription, mod_observationchecklist{{/str}}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Student Observation Card Template -->
+<template id="student-observation-template">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card student-observation-card" data-student-id="" data-item-id="">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fa fa-user fa-sm mr-2"></i>
+                        <span class="student-name font-weight-medium"></span>
+                    </div>
+                    <div class="observation-status">
+                        <span class="badge badge-secondary">{{#str}}notobserved, mod_observationchecklist{{/str}}</span>
+                    </div>
+                </div>
+
+                <div class="observation-notes mb-3">
+                    <label class="form-label small">{{#str}}observationnotes, mod_observationchecklist{{/str}}</label>
+                    <textarea class="form-control form-control-sm notes-textarea" rows="2" 
+                              placeholder="{{#str}}recordobservations, mod_observationchecklist{{/str}}"></textarea>
+                </div>
+
+                <div class="observation-buttons">
+                    <button class="btn btn-success btn-sm assess-satisfactory" type="button">
+                        <i class="fa fa-check"></i> {{#str}}satisfactory, mod_observationchecklist{{/str}}
+                    </button>
+                    <button class="btn btn-danger btn-sm assess-not-satisfactory ml-1" type="button">
+                        <i class="fa fa-times"></i> {{#str}}notsatisfactory, mod_observationchecklist{{/str}}
+                    </button>
+                </div>
+
+                <div class="assessment-result mt-2" style="display: none;">
+                    <div class="alert alert-sm assessment-alert">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="assessment-icon"></i>
+                                <span class="assessment-text"></span>
+                            </div>
+                            <button class="btn btn-link btn-sm reset-assessment" type="button">
+                                {{#str}}reset{{/str}}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

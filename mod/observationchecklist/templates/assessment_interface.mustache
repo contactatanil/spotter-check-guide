@@ -1,0 +1,126 @@
+<div class="assessment-interface-container">
+    <div class="row">
+        <!-- Header with Multi-Student Link -->
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4><i class="fa fa-user-check"></i> Student Assessment</h4>
+                <a href="{{actionurl}}multi_student.php?id={{cmid}}" class="btn btn-primary">
+                    <i class="fa fa-users"></i> {{#str}}multistudentobservation, mod_observationchecklist{{/str}}
+                </a>
+            </div>
+        </div>
+
+        <!-- Student Selector -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-user-check"></i> Individual Student Assessment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="studentSelector" class="form-label">Select Student:</label>
+                            <select class="form-select" id="studentSelector" onchange="loadStudentAssessment()">
+                                <option value="">Choose a student...</option>
+                                {{#students}}
+                                <option value="{{id}}">{{firstname}} {{lastname}} ({{email}})</option>
+                                {{/students}}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="student-stats mt-3 mt-md-0">
+                                <div id="studentStatsDisplay" style="display: none;">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <div class="stat-number text-success" id="studentSatisfactory">0</div>
+                                                <div class="stat-label">Satisfactory</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <div class="stat-number text-danger" id="studentNotSatisfactory">0</div>
+                                                <div class="stat-label">Not Satisfactory</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <div class="stat-number text-info" id="studentProgress">0%</div>
+                                                <div class="stat-label">Progress</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment Area -->
+        <div class="col-12">
+            <div id="assessmentItemsArea" style="display: none;">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Assessment Items</h5>
+                        <button class="btn btn-success btn-sm" onclick="saveAllAssessments()">
+                            <i class="fa fa-save"></i> Save All Assessments
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="assessmentItemsList">
+                            <!-- Items will be loaded here via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- No Student Selected -->
+            <div id="noStudentMessage" class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fa fa-user-plus fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Select a Student</h5>
+                    <p class="text-muted">Choose a student from the dropdown above to begin assessment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assessment Item Template -->
+<div id="assessmentItemTemplate" style="display: none;">
+    <div class="assessment-item card mb-3">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="item-title"></h6>
+                    <small class="text-muted item-category"></small>
+                </div>
+                <div class="col-md-4">
+                    <div class="current-status mb-2">
+                        <span class="badge current-status-badge"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="assessment-controls mt-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Assessment Status:</label>
+                        <select class="form-select status-select">
+                            <option value="not_started">Not Started</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="satisfactory">Satisfactory</option>
+                            <option value="not_satisfactory">Not Satisfactory</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Assessor Notes:</label>
+                        <textarea class="form-control notes-textarea" rows="2" placeholder="Add your assessment notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
