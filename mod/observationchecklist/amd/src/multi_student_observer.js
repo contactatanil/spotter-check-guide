@@ -28,57 +28,130 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
     MultiStudentObserver.prototype.bindEvents = function() {
         var self = this;
 
-        // Student selection
-        $(document).on('change', '.student-checkbox', function() {
-            var studentId = $(this).val();
-            var studentName = $(this).data('student-name');
-            
-            if ($(this).is(':checked')) {
-                self.selectedStudents.add({id: studentId, name: studentName});
-            } else {
-                self.selectedStudents.delete({id: studentId, name: studentName});
+        // Student selection with error handling
+        $(document).on('change.observationchecklist', '.student-checkbox', function() {
+            try {
+                var studentId = $(this).val();
+                var studentName = $(this).data('student-name');
+                
+                // Enhanced type checking
+                if (!studentId || !studentName || typeof studentId === 'undefined' || typeof studentName === 'undefined') {
+                    Notification.addNotification({
+                        message: 'Invalid student data',
+                        type: 'error'
+                    });
+                    return;
+                }
+                
+                var studentObj = {id: studentId, name: studentName};
+                
+                if ($(this).is(':checked')) {
+                    self.selectedStudents.add(studentObj);
+                } else {
+                    // Remove student by finding matching id
+                    for (let student of self.selectedStudents) {
+                        if (student && student.id === studentId) {
+                            self.selectedStudents.delete(student);
+                            break;
+                        }
+                    }
+                }
+                
+                self.updateSelectedStudents();
+                self.updateObservationGrid();
+            } catch (e) {
+                Notification.exception(e);
             }
-            
-            self.updateSelectedStudents();
-            self.updateObservationGrid();
         });
 
-        // Assessment buttons
-        $(document).on('click', '.assess-satisfactory, .assess-not-satisfactory', function() {
-            var $card = $(this).closest('.student-observation-card');
-            var studentId = $card.data('student-id');
-            var itemId = $card.data('item-id');
-            var status = $(this).hasClass('assess-satisfactory') ? 'satisfactory' : 'not_satisfactory';
-            var notes = $card.find('.notes-textarea').val();
+        // Assessment buttons with enhanced error handling
+        $(document).on('click.observationchecklist', '.assess-satisfactory, .assess-not-satisfactory', function() {
+            try {
+                var $card = $(this).closest('.student-observation-card');
+                var studentId = $card.data('student-id');
+                var itemId = $card.data('item-id');
+                var status = $(this).hasClass('assess-satisfactory') ? 'satisfactory' : 'not_satisfactory';
+                var notes = $card.find('.notes-textarea').val();
 
-            self.recordObservation(studentId, itemId, status, notes, $card);
+                // Validate required data
+                if (!studentId || !itemId) {
+                    Notification.addNotification({
+                        message: 'Missing required assessment data',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                self.recordObservation(studentId, itemId, status, notes, $card);
+            } catch (e) {
+                Notification.exception(e);
+            }
         });
 
         // Reset assessment
-        $(document).on('click', '.reset-assessment', function() {
-            var $card = $(this).closest('.student-observation-card');
-            var studentId = $card.data('student-id');
-            var itemId = $card.data('item-id');
+        $(document).on('click.observationchecklist', '.reset-assessment', function() {
+            try {
+                var $card = $(this).closest('.student-observation-card');
+                var studentId = $card.data('student-id');
+                var itemId = $card.data('item-id');
 
-            self.resetObservation(studentId, itemId, $card);
+                if (!studentId || !itemId) {
+                    Notification.addNotification({
+                        message: 'Missing required data for reset',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                self.resetObservation(studentId, itemId, $card);
+            } catch (e) {
+                Notification.exception(e);
+            }
         });
 
-        // Save all observations
-        $('#save-all-observations').on('click', function() {
-            self.saveAllObservations();
+        // Save all observations with validation
+        $('#save-all-observations').on('click.observationchecklist', function() {
+            try {
+                if (self.observations.size === 0) {
+                    Notification.addNotification({
+                        message: 'No observations to save',
+                        type: 'warning'
+                    });
+                    return;
+                }
+                self.saveAllObservations();
+            } catch (e) {
+                Notification.exception(e);
+            }
         });
 
-        // Notes change
-        $(document).on('input', '.notes-textarea', function() {
-            var $card = $(this).closest('.student-observation-card');
-            var studentId = $card.data('student-id');
-            var itemId = $card.data('item-id');
-            var key = studentId + '-' + itemId;
+        // Notes change with validation
+        $(document).on('input.observationchecklist', '.notes-textarea', function() {
+            try {
+                var $card = $(this).closest('.student-observation-card');
+                var studentId = $card.data('student-id');
+                var itemId = $card.data('item-id');
+                var notes = $(this).val();
+                
+                // Validate notes length
+                if (notes.length > 1000) {
+                    $(this).val(notes.substring(0, 1000));
+                    Notification.addNotification({
+                        message: 'Notes truncated to 1000 characters maximum',
+                        type: 'warning'
+                    });
+                    return;
+                }
+                
+                var key = studentId + '-' + itemId;
 
-            if (self.observations.has(key)) {
-                var obs = self.observations.get(key);
-                obs.notes = $(this).val();
-                self.observations.set(key, obs);
+                if (self.observations.has(key)) {
+                    var obs = self.observations.get(key);
+                    obs.notes = notes;
+                    self.observations.set(key, obs);
+                }
+            } catch (e) {
+                Notification.exception(e);
             }
         });
     };
@@ -93,7 +166,11 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
 
         if (this.selectedStudents.size > 0) {
             this.selectedStudents.forEach(function(student) {
-                $list.append('<div class="badge badge-primary mr-1 mb-1">' + student.name + '</div>');
+                // Enhanced validation before processing
+                if (student && student.id && student.name && typeof student.name === 'string') {
+                    var escapedName = $('<div>').text(student.name).html(); // XSS protection
+                    $list.append('<div class="badge badge-primary mr-1 mb-1">' + escapedName + '</div>');
+                }
             });
         }
     };
@@ -124,93 +201,123 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
             var itemId = $(this).data('item-id');
             var $itemGrid = $(this).find('.student-observation-grid');
 
-            self.selectedStudents.forEach(function(student) {
-                self.createStudentObservationCard(student, itemId, $itemGrid);
-            });
+            if (itemId) {
+                self.selectedStudents.forEach(function(student) {
+                    if (student && student.id && student.name) {
+                        self.createStudentObservationCard(student, itemId, $itemGrid);
+                    }
+                });
+            }
         });
 
         this.updateSaveButton();
     };
 
     MultiStudentObserver.prototype.createStudentObservationCard = function(student, itemId, $container) {
-        var $template = $('#student-observation-template').clone();
-        var $card = $template.find('.student-observation-card');
-        
-        $card.attr('data-student-id', student.id);
-        $card.attr('data-item-id', itemId);
-        $card.find('.student-name').text(student.name);
+        try {
+            var $template = $('#student-observation-template').clone();
+            var $card = $template.find('.student-observation-card');
+            
+            if ($card.length && student && student.id && student.name && itemId) {
+                $card.attr('data-student-id', student.id);
+                $card.attr('data-item-id', itemId);
+                
+                var escapedName = $('<div>').text(student.name).html(); // XSS protection
+                $card.find('.student-name').text(escapedName);
 
-        $container.append($template.html());
+                $container.append($template.html());
+            }
+        } catch (e) {
+            Notification.exception(e);
+        }
     };
 
     MultiStudentObserver.prototype.recordObservation = function(studentId, itemId, status, notes, $card) {
-        var key = studentId + '-' + itemId;
-        var observation = {
-            studentId: studentId,
-            itemId: itemId,
-            status: status,
-            notes: notes,
-            timestamp: new Date()
-        };
+        try {
+            var key = studentId + '-' + itemId;
+            var observation = {
+                studentId: parseInt(studentId),
+                itemId: parseInt(itemId),
+                status: status,
+                notes: notes || '',
+                timestamp: new Date()
+            };
 
-        this.observations.set(key, observation);
-        this.updateObservationDisplay($card, status);
-        this.updateSaveButton();
+            this.observations.set(key, observation);
+            this.updateObservationDisplay($card, status);
+            this.updateSaveButton();
 
-        // Show success feedback
-        var studentName = $card.find('.student-name').text();
-        Notification.addNotification({
-            message: 'Observation recorded for ' + studentName,
-            type: 'success'
-        });
+            // Show success feedback
+            var studentName = $card.find('.student-name').text();
+            if (studentName) {
+                Notification.addNotification({
+                    message: 'Observation recorded for ' + studentName,
+                    type: 'success'
+                });
+            }
+        } catch (e) {
+            Notification.exception(e);
+        }
     };
 
     MultiStudentObserver.prototype.resetObservation = function(studentId, itemId, $card) {
-        var key = studentId + '-' + itemId;
-        this.observations.delete(key);
+        try {
+            var key = studentId + '-' + itemId;
+            this.observations.delete(key);
 
-        // Reset display
-        $card.find('.observation-buttons').show();
-        $card.find('.assessment-result').hide();
-        $card.find('.observation-status .badge')
-            .removeClass('badge-success badge-danger')
-            .addClass('badge-secondary')
-            .text('Not Observed');
+            // Reset display
+            $card.find('.observation-buttons').show();
+            $card.find('.assessment-result').hide();
+            $card.find('.observation-status .badge')
+                .removeClass('badge-success badge-danger')
+                .addClass('badge-secondary')
+                .text('Not Observed');
 
-        this.updateSaveButton();
+            this.updateSaveButton();
+        } catch (e) {
+            Notification.exception(e);
+        }
     };
 
     MultiStudentObserver.prototype.updateObservationDisplay = function($card, status) {
-        var $buttons = $card.find('.observation-buttons');
-        var $result = $card.find('.assessment-result');
-        var $alert = $result.find('.assessment-alert');
-        var $icon = $result.find('.assessment-icon');
-        var $text = $result.find('.assessment-text');
-        var $badge = $card.find('.observation-status .badge');
+        try {
+            var $buttons = $card.find('.observation-buttons');
+            var $result = $card.find('.assessment-result');
+            var $alert = $result.find('.assessment-alert');
+            var $icon = $result.find('.assessment-icon');
+            var $text = $result.find('.assessment-text');
+            var $badge = $card.find('.observation-status .badge');
 
-        $buttons.hide();
-        $result.show();
+            $buttons.hide();
+            $result.show();
 
-        if (status === 'satisfactory') {
-            $alert.removeClass('alert-danger').addClass('alert-success');
-            $icon.removeClass('fa-times').addClass('fa-check');
-            $text.text('Satisfactory');
-            $badge.removeClass('badge-secondary badge-danger').addClass('badge-success').text('Satisfactory');
-        } else {
-            $alert.removeClass('alert-success').addClass('alert-danger');
-            $icon.removeClass('fa-check').addClass('fa-times');
-            $text.text('Not Satisfactory');
-            $badge.removeClass('badge-secondary badge-success').addClass('badge-danger').text('Not Satisfactory');
+            if (status === 'satisfactory') {
+                $alert.removeClass('alert-danger').addClass('alert-success');
+                $icon.removeClass('fa-times').addClass('fa-check');
+                $text.text('Satisfactory');
+                $badge.removeClass('badge-secondary badge-danger').addClass('badge-success').text('Satisfactory');
+            } else if (status === 'not_satisfactory') {
+                $alert.removeClass('alert-success').addClass('alert-danger');
+                $icon.removeClass('fa-check').addClass('fa-times');
+                $text.text('Not Satisfactory');
+                $badge.removeClass('badge-secondary badge-success').addClass('badge-danger').text('Not Satisfactory');
+            }
+        } catch (e) {
+            Notification.exception(e);
         }
     };
 
     MultiStudentObserver.prototype.updateSaveButton = function() {
-        var $saveBtn = $('#save-all-observations');
-        
-        if (this.observations.size > 0) {
-            $saveBtn.prop('disabled', false).text('Save ' + this.observations.size + ' Observations');
-        } else {
-            $saveBtn.prop('disabled', true).text('Save All Assessments');
+        try {
+            var $saveBtn = $('#save-all-observations');
+            
+            if (this.observations.size > 0) {
+                $saveBtn.prop('disabled', false).text('Save ' + this.observations.size + ' Observations');
+            } else {
+                $saveBtn.prop('disabled', true).text('Save All Assessments');
+            }
+        } catch (e) {
+            Notification.exception(e);
         }
     };
 
@@ -221,7 +328,26 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
             return;
         }
 
-        var observations = Array.from(this.observations.values());
+        // Validate observations before sending
+        var observations = [];
+        this.observations.forEach(function(obs) {
+            if (obs && obs.studentId && obs.itemId && obs.status) {
+                observations.push({
+                    studentId: parseInt(obs.studentId),
+                    itemId: parseInt(obs.itemId),
+                    status: obs.status,
+                    notes: obs.notes || ''
+                });
+            }
+        });
+
+        if (observations.length === 0) {
+            Notification.addNotification({
+                message: 'No valid observations to save',
+                type: 'warning'
+            });
+            return;
+        }
 
         Ajax.call([{
             methodname: 'mod_observationchecklist_save_multi_observations',
@@ -230,9 +356,9 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
                 observations: observations
             }
         }])[0].done(function(result) {
-            if (result.success) {
+            if (result && result.success) {
                 Notification.addNotification({
-                    message: 'All observations saved successfully',
+                    message: result.message || 'All observations saved successfully',
                     type: 'success'
                 });
                 
@@ -241,9 +367,20 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/templates'], function(
                     window.location.reload();
                 }, 1500);
             } else {
-                Notification.exception(new Error(result.message || 'Failed to save observations'));
+                Notification.addNotification({
+                    message: result.message || 'Failed to save observations',
+                    type: 'error'
+                });
             }
-        }).fail(Notification.exception);
+        }).fail(function(error) {
+            Notification.exception(error);
+        });
+    };
+
+    // Cleanup function to remove event listeners
+    MultiStudentObserver.prototype.destroy = function() {
+        $(document).off('.observationchecklist');
+        $('#save-all-observations').off('.observationchecklist');
     };
 
     return {

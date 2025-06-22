@@ -1,9 +1,10 @@
+
 <div class="assessment-interface-container">
     <div class="row">
         <!-- Header with Multi-Student Link -->
         <div class="col-12 mb-4">
             <div class="d-flex justify-content-between align-items-center">
-                <h4><i class="fa fa-user-check"></i> Student Assessment</h4>
+                <h4><i class="fa fa-user-check"></i> {{#str}}studentassessment, mod_observationchecklist{{/str}}</h4>
                 <a href="{{actionurl}}multi_student.php?id={{cmid}}" class="btn btn-primary">
                     <i class="fa fa-users"></i> {{#str}}multistudentobservation, mod_observationchecklist{{/str}}
                 </a>
@@ -14,14 +15,14 @@
         <div class="col-12 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fa fa-user-check"></i> Individual Student Assessment</h5>
+                    <h5 class="mb-0"><i class="fa fa-user-check"></i> {{#str}}individualstudentassessment, mod_observationchecklist{{/str}}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <label for="studentSelector" class="form-label">Select Student:</label>
+                            <label for="studentSelector" class="form-label">{{#str}}selectstudent, mod_observationchecklist{{/str}}:</label>
                             <select class="form-select" id="studentSelector" onchange="loadStudentAssessment()">
-                                <option value="">Choose a student...</option>
+                                <option value="">{{#str}}choosestudent, mod_observationchecklist{{/str}}...</option>
                                 {{#students}}
                                 <option value="{{id}}">{{firstname}} {{lastname}} ({{email}})</option>
                                 {{/students}}
@@ -34,19 +35,19 @@
                                         <div class="col-4">
                                             <div class="stat-item">
                                                 <div class="stat-number text-success" id="studentSatisfactory">0</div>
-                                                <div class="stat-label">Satisfactory</div>
+                                                <div class="stat-label">{{#str}}satisfactory, mod_observationchecklist{{/str}}</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="stat-item">
                                                 <div class="stat-number text-danger" id="studentNotSatisfactory">0</div>
-                                                <div class="stat-label">Not Satisfactory</div>
+                                                <div class="stat-label">{{#str}}notsatisfactory, mod_observationchecklist{{/str}}</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="stat-item">
                                                 <div class="stat-number text-info" id="studentProgress">0%</div>
-                                                <div class="stat-label">Progress</div>
+                                                <div class="stat-label">{{#str}}progress, mod_observationchecklist{{/str}}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -63,9 +64,9 @@
             <div id="assessmentItemsArea" style="display: none;">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Assessment Items</h5>
+                        <h5 class="mb-0">{{#str}}assessmentitems, mod_observationchecklist{{/str}}</h5>
                         <button class="btn btn-success btn-sm" onclick="saveAllAssessments()">
-                            <i class="fa fa-save"></i> Save All Assessments
+                            <i class="fa fa-save"></i> {{#str}}saveallassessments, mod_observationchecklist{{/str}}
                         </button>
                     </div>
                     <div class="card-body">
@@ -80,8 +81,8 @@
             <div id="noStudentMessage" class="card">
                 <div class="card-body text-center py-5">
                     <i class="fa fa-user-plus fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Select a Student</h5>
-                    <p class="text-muted">Choose a student from the dropdown above to begin assessment.</p>
+                    <h5 class="text-muted">{{#str}}selectstudent, mod_observationchecklist{{/str}}</h5>
+                    <p class="text-muted">{{#str}}choosestudentmessage, mod_observationchecklist{{/str}}</p>
                 </div>
             </div>
         </div>
@@ -94,12 +95,12 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-8">
-                    <h6 class="item-title"></h6>
-                    <small class="text-muted item-category"></small>
+                    <h6 class="item-title"><!-- Title will be set via JavaScript --></h6>
+                    <small class="text-muted item-category"><!-- Category will be set via JavaScript --></small>
                 </div>
                 <div class="col-md-4">
                     <div class="current-status mb-2">
-                        <span class="badge current-status-badge"></span>
+                        <span class="badge current-status-badge"><!-- Status will be set via JavaScript --></span>
                     </div>
                 </div>
             </div>
@@ -107,17 +108,18 @@
             <div class="assessment-controls mt-3">
                 <div class="row">
                     <div class="col-md-6">
-                        <label class="form-label">Assessment Status:</label>
+                        <label class="form-label">{{#str}}assessmentstatus, mod_observationchecklist{{/str}}:</label>
                         <select class="form-select status-select">
-                            <option value="not_started">Not Started</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="satisfactory">Satisfactory</option>
-                            <option value="not_satisfactory">Not Satisfactory</option>
+                            <option value="not_started">{{#str}}notstarted, mod_observationchecklist{{/str}}</option>
+                            <option value="in_progress">{{#str}}inprogress, mod_observationchecklist{{/str}}</option>
+                            <option value="satisfactory">{{#str}}satisfactory, mod_observationchecklist{{/str}}</option>
+                            <option value="not_satisfactory">{{#str}}notsatisfactory, mod_observationchecklist{{/str}}</option>
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Assessor Notes:</label>
-                        <textarea class="form-control notes-textarea" rows="2" placeholder="Add your assessment notes..."></textarea>
+                        <label class="form-label">{{#str}}assessornotes, mod_observationchecklist{{/str}}:</label>
+                        <textarea class="form-control notes-textarea" rows="2" placeholder="{{#str}}addassessmentnotes, mod_observationchecklist{{/str}}" maxlength="1000"></textarea>
+                        <small class="text-muted">{{#str}}maxcharacters, mod_observationchecklist{{/str}}: 1000</small>
                     </div>
                 </div>
             </div>

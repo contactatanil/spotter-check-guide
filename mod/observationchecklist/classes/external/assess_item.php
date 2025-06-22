@@ -69,13 +69,19 @@ class assess_item extends external_api {
         
         // Validate context and check capabilities.
         self::validate_context($context);
-        require_capability('mod/observ ationchecklist:assess', $context);
+        require_capability('mod/observationchecklist:assess', $context);
 
-        // Validate that the item belongs to this checklist.
+        // Enhanced validation
+        // Validate notes length
+        if (strlen($params['notes']) > 1000) {
+            throw new invalid_parameter_exception('Notes too long (maximum 1000 characters)');
+        }
+
+        // Validate that the item belongs to this checklist and exists
         $item = $DB->get_record('observationchecklist_items', [
             'id' => $params['itemid'],
             'checklistid' => $cm->instance
-        ]);
+        ], '*', MUST_EXIST);
         
         if (!$item) {
             throw new invalid_parameter_exception('Invalid item ID for this checklist');
@@ -88,12 +94,21 @@ class assess_item extends external_api {
             throw new invalid_parameter_exception('User is not enrolled in this course');
         }
 
-        // Validate status.
+        // Enhanced status validation
         $valid_statuses = ['satisfactory', 'not_satisfactory', 'in_progress', 'not_started'];
         if (!in_array($params['status'], $valid_statuses)) {
-            throw new invalid_parameter_exception('Invalid status provided');
+            throw new invalid_parameter_exception('Invalid status provided. Must be one of: ' . implode(', ', $valid_statuses));
         }
 
+        // Validate userid exists
+        $user = $DB->get_record('user', ['id' => $params['userid']], '*', MUST_EXIST);
+        if (!$user) {
+            throw new invalid_parameter_exception('Invalid user ID');
+        }
+
+        // Start database transaction for data consistency
+        $transaction = $DB->start_delegated_transaction();
+        
         try {
             // Check if assessment already exists.
             $existing = $DB->get_record('observationchecklist_user_items', [
@@ -123,6 +138,9 @@ class assess_item extends external_api {
                 $DB->insert_record('observationchecklist_user_items', $assessment);
             }
 
+            // Commit the transaction
+            $transaction->allow_commit();
+
             // Trigger event.
             $event = \mod_observationchecklist\event\assessment_made::create([
                 'objectid' => $params['itemid'],
@@ -141,9 +159,11 @@ class assess_item extends external_api {
             ];
 
         } catch (\Exception $e) {
+            // Rollback transaction on error
+            $transaction->rollback($e);
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Database error: ' . $e->getMessage()
             ];
         }
     }
