@@ -1,3 +1,4 @@
+
 <?php
 // This file is part of Moodle - http://moodle.org/
 
@@ -63,6 +64,7 @@ $functions = array(
         'ajax'        => true,
         'capabilities' => 'mod/observationchecklist:view',
     ),
+
     'mod_observationchecklist_save_multi_observations' => array(
         'classname'   => 'mod_observationchecklist\external\save_multi_observations',
         'methodname'  => 'execute',
@@ -72,5 +74,4 @@ $functions = array(
         'ajax'        => true,
         'capabilities' => 'mod/observationchecklist:assess',
     ),
-
 );

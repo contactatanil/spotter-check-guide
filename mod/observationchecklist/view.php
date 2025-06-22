@@ -58,6 +58,12 @@ $canassess = has_capability('mod/observationchecklist:assess', $context);
 $canedit = has_capability('mod/observationchecklist:edit', $context);
 $cansubmit = has_capability('mod/observationchecklist:submit', $context) && $observationchecklist->allowstudentsubmit;
 
+// Initialize AMD modules based on user capabilities
+if ($canassess || $canedit) {
+    $PAGE->requires->js_call_amd('mod_observationchecklist/checklist_manager', 'init', array($cm->id));
+    $PAGE->requires->js_call_amd('mod_observationchecklist/progress_tracker', 'init', array($cm->id));
+}
+
 echo $OUTPUT->header();
 
 // Initialize data provider and renderer

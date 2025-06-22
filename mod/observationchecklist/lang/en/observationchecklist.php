@@ -1,3 +1,4 @@
+
 <?php
 // This file is part of Moodle - http://moodle.org/
 
@@ -33,11 +34,13 @@ $string['not_started'] = 'Not Started';
 $string['in_progress'] = 'In Progress';
 $string['satisfactory'] = 'Satisfactory';
 $string['not_satisfactory'] = 'Not Satisfactory';
+$string['notsatisfactory'] = 'Not Satisfactory';
 
 // Action strings
 $string['itemadded'] = 'Item added successfully';
 $string['itemdeleted'] = 'Item deleted successfully';
 $string['assessmentadded'] = 'Assessment added successfully';
+$string['back'] = 'Back';
 
 // Capabilities
 $string['observationchecklist:addinstance'] = 'Add a new observation checklist';
@@ -73,3 +76,13 @@ $string['notobserved'] = 'Not Observed';
 $string['multiobservationssaved'] = '{$a} observations saved successfully';
 $string['noobservationssaved'] = 'No observations were saved';
 $string['reset'] = 'Reset';
+
+// Report strings
+$string['generatereport'] = 'Generate Report';
+$string['printreport'] = 'Print Report';
+$string['reportgenerated'] = 'Report generated successfully';
+
+// Navigation strings
+$string['viewprogress'] = 'View Progress';
+$string['manageitems'] = 'Manage Items';
+$string['assessment'] = 'Assessment';
