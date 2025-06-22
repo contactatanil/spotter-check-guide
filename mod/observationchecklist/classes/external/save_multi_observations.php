@@ -16,29 +16,33 @@ use external_multiple_structure;
 use context_module;
 
 /**
- * External API for saving multiple observations
+ * External API for saving multiple student observations
  */
 class save_multi_observations extends external_api {
 
     /**
      * Returns description of method parameters
+     * @return external_function_parameters
      */
     public static function execute_parameters() {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module ID'),
             'observations' => new external_multiple_structure(
                 new external_single_structure([
-                    'studentId' => new external_value(PARAM_INT, 'Student ID'),
-                    'itemId' => new external_value(PARAM_INT, 'Item ID'),
+                    'itemid' => new external_value(PARAM_INT, 'Item ID'),
+                    'userid' => new external_value(PARAM_INT, 'User ID'),
                     'status' => new external_value(PARAM_ALPHA, 'Assessment status'),
-                    'notes' => new external_value(PARAM_TEXT, 'Assessment notes', VALUE_OPTIONAL, ''),
+                    'notes' => new external_value(PARAM_TEXT, 'Assessment notes', VALUE_OPTIONAL, '')
                 ])
             )
         ]);
     }
 
     /**
-     * Save multiple observations
+     * Save multiple student observations
+     * @param int $cmid Course module ID
+     * @param array $observations Array of observations
+     * @return array
      */
     public static function execute($cmid, $observations) {
         global $DB, $USER;
@@ -48,73 +52,79 @@ class save_multi_observations extends external_api {
             'observations' => $observations
         ]);
 
+        // Get course module and context
         $cm = get_coursemodule_from_id('observationchecklist', $params['cmid'], 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
         
-        self::validate_context($context);
+        // Check capabilities
         require_capability('mod/observationchecklist:assess', $context);
 
-        $success_count = 0;
-        $errors = [];
+        $transaction = $DB->start_delegated_transaction();
+        
+        try {
+            $saved = 0;
+            foreach ($params['observations'] as $obs) {
+                // Validate status
+                $valid_statuses = ['satisfactory', 'not_satisfactory', 'in_progress', 'not_started'];
+                if (!in_array($obs['status'], $valid_statuses)) {
+                    continue;
+                }
 
-        foreach ($params['observations'] as $observation) {
-            try {
                 // Check if assessment already exists
                 $existing = $DB->get_record('observationchecklist_user_items', [
                     'checklistid' => $cm->instance,
-                    'itemid' => $observation['itemId'],
-                    'userid' => $observation['studentId']
+                    'itemid' => $obs['itemid'],
+                    'userid' => $obs['userid']
                 ]);
 
                 $assessment = new \stdClass();
                 $assessment->checklistid = $cm->instance;
-                $assessment->itemid = $observation['itemId'];
-                $assessment->userid = $observation['studentId'];
-                $assessment->status = $observation['status'];
-                $assessment->assessornotes = clean_param($observation['notes'], PARAM_TEXT);
+                $assessment->itemid = $obs['itemid'];
+                $assessment->userid = $obs['userid'];
+                $assessment->status = $obs['status'];
+                $assessment->assessornotes = clean_param($obs['notes'], PARAM_TEXT);
                 $assessment->assessorid = $USER->id;
                 $assessment->dateassessed = time();
                 $assessment->timemodified = time();
 
                 if ($existing) {
-                    // Update existing assessment
                     $assessment->id = $existing->id;
                     $assessment->timecreated = $existing->timecreated;
                     $DB->update_record('observationchecklist_user_items', $assessment);
                 } else {
-                    // Create new assessment
                     $assessment->timecreated = time();
                     $DB->insert_record('observationchecklist_user_items', $assessment);
                 }
-                
-                $success_count++;
-                
-            } catch (Exception $e) {
-                $errors[] = $e->getMessage();
+                $saved++;
             }
-        }
 
-        return [
-            'success' => $success_count > 0,
-            'saved_count' => $success_count,
-            'total_count' => count($params['observations']),
-            'errors' => $errors,
-            'message' => "Successfully saved {$success_count} observations"
-        ];
+            $transaction->allow_commit();
+
+            return [
+                'success' => true,
+                'saved' => $saved,
+                'message' => get_string('observationsaved', 'mod_observationchecklist')
+            ];
+
+        } catch (\Exception $e) {
+            $transaction->rollback($e);
+            return [
+                'success' => false,
+                'saved' => 0,
+                'message' => 'Error saving observations: ' . $e->getMessage()
+            ];
+        }
     }
 
     /**
      * Returns description of method result value
+     * @return external_single_structure
      */
     public static function execute_returns() {
         return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'Whether the operation was successful'),
-            'saved_count' => new external_value(PARAM_INT, 'Number of observations saved'),
-            'total_count' => new external_value(PARAM_INT, 'Total number of observations attempted'),
-            'errors' => new external_multiple_structure(
-                new external_value(PARAM_TEXT, 'Error message'), 'List of errors', VALUE_OPTIONAL
-            ),
-            'message' => new external_value(PARAM_TEXT, 'Success message')
+            'success' => new external_value(PARAM_BOOL, 'Success status'),
+            'saved' => new external_value(PARAM_INT, 'Number of observations saved'),
+            'message' => new external_value(PARAM_TEXT, 'Response message')
         ]);
     }
 }

@@ -50,72 +50,51 @@ class get_all_progress extends external_api {
         require_capability('mod/observationchecklist:view', $context);
 
         try {
-            // Get enrolled students
-            $students = get_enrolled_users($context, 'mod/observationchecklist:submit');
+            // Get all progress for this checklist
+            $sql = "SELECT ui.*, u.firstname, u.lastname, i.itemtext
+                    FROM {observationchecklist_user_items} ui
+                    JOIN {user} u ON u.id = ui.userid
+                    JOIN {observationchecklist_items} i ON i.id = ui.itemid
+                    WHERE ui.checklistid = ?
+                    ORDER BY u.lastname, u.firstname, i.sortorder";
             
-            // Get total items count
-            $totalItems = $DB->count_records('observationchecklist_items', ['checklistid' => $cm->instance]);
+            $progress = $DB->get_records_sql($sql, [$cm->instance]);
 
             $result = [];
-            foreach ($students as $student) {
-                // Get student progress
-                $progress = $DB->get_records('observationchecklist_user_items', [
-                    'checklistid' => $cm->instance,
-                    'userid' => $student->id
-                ]);
-
-                $satisfactory = 0;
-                $notSatisfactory = 0;
-                foreach ($progress as $item) {
-                    if ($item->status === 'satisfactory') {
-                        $satisfactory++;
-                    } else if ($item->status === 'not_satisfactory') {
-                        $notSatisfactory++;
-                    }
-                }
-
+            foreach ($progress as $item) {
                 $result[] = [
-                    'userid' => $student->id,
-                    'fullname' => fullname($student),
-                    'total' => $totalItems,
-                    'completed' => count($progress),
-                    'satisfactory' => $satisfactory,
-                    'not_satisfactory' => $notSatisfactory
+                    'userid' => $item->userid,
+                    'userfullname' => $item->firstname . ' ' . $item->lastname,
+                    'itemid' => $item->itemid,
+                    'itemtext' => $item->itemtext,
+                    'status' => $item->status,
+                    'notes' => $item->assessornotes,
+                    'dateassessed' => $item->dateassessed
                 ];
             }
 
-            return [
-                'success' => true,
-                'data' => $result
-            ];
+            return $result;
 
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-                'data' => []
-            ];
+            return [];
         }
     }
 
     /**
      * Returns description of method result value
-     * @return external_single_structure
+     * @return external_multiple_structure
      */
     public static function execute_returns() {
-        return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'Success status'),
-            'message' => new external_value(PARAM_TEXT, 'Response message', VALUE_OPTIONAL),
-            'data' => new external_multiple_structure(
-                new external_single_structure([
-                    'userid' => new external_value(PARAM_INT, 'User ID'),
-                    'fullname' => new external_value(PARAM_TEXT, 'Full name'),
-                    'total' => new external_value(PARAM_INT, 'Total items'),
-                    'completed' => new external_value(PARAM_INT, 'Completed items'),
-                    'satisfactory' => new external_value(PARAM_INT, 'Satisfactory items'),
-                    'not_satisfactory' => new external_value(PARAM_INT, 'Not satisfactory items')
-                ])
-            )
-        ]);
+        return new external_multiple_structure(
+            new external_single_structure([
+                'userid' => new external_value(PARAM_INT, 'User ID'),
+                'userfullname' => new external_value(PARAM_TEXT, 'User full name'),
+                'itemid' => new external_value(PARAM_INT, 'Item ID'),
+                'itemtext' => new external_value(PARAM_TEXT, 'Item text'),
+                'status' => new external_value(PARAM_TEXT, 'Assessment status'),
+                'notes' => new external_value(PARAM_TEXT, 'Assessment notes'),
+                'dateassessed' => new external_value(PARAM_INT, 'Date assessed')
+            ])
+        );
     }
 }

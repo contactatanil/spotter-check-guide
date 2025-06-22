@@ -15,7 +15,7 @@ $capabilities = array(
         ),
         'clonepermissionsfrom' => 'moodle/course:manageactivities'
     ),
-    
+
     'mod/observationchecklist:view' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -27,7 +27,7 @@ $capabilities = array(
             'manager' => CAP_ALLOW
         )
     ),
-    
+
     'mod/observationchecklist:edit' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
@@ -38,7 +38,7 @@ $capabilities = array(
             'manager' => CAP_ALLOW
         )
     ),
-    
+
     'mod/observationchecklist:assess' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
@@ -49,17 +49,9 @@ $capabilities = array(
             'manager' => CAP_ALLOW
         )
     ),
-    
+
     'mod/observationchecklist:submit' => array(
         'captype' => 'write',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => array(
-            'student' => CAP_ALLOW
-        )
-    ),
-    
-    'mod/observationchecklist:viewreports' => array(
-        'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
             'student' => CAP_ALLOW,

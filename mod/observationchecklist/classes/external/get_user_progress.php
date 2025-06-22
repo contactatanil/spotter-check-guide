@@ -27,18 +27,18 @@ class get_user_progress extends external_api {
     public static function execute_parameters() {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module ID'),
-            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0)
+            'userid' => new external_value(PARAM_INT, 'User ID')
         ]);
     }
 
     /**
      * Get user progress for checklist items
      * @param int $cmid Course module ID
-     * @param int $userid User ID (0 for current user)
+     * @param int $userid User ID
      * @return array
      */
-    public static function execute($cmid, $userid = 0) {
-        global $DB, $USER;
+    public static function execute($cmid, $userid) {
+        global $DB;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'cmid' => $cmid,
@@ -52,72 +52,42 @@ class get_user_progress extends external_api {
         // Check capabilities
         require_capability('mod/observationchecklist:view', $context);
 
-        // Use current user if no userid specified
-        if (!$params['userid']) {
-            $params['userid'] = $USER->id;
-        }
-
         try {
-            // Get all checklist items
-            $items = $DB->get_records('observationchecklist_items', 
-                ['checklistid' => $cm->instance], 'sortorder ASC');
-
             // Get user progress
             $progress = $DB->get_records('observationchecklist_user_items', [
                 'checklistid' => $cm->instance,
                 'userid' => $params['userid']
-            ], '', 'itemid, status, assessornotes, dateassessed');
+            ]);
 
             $result = [];
-            foreach ($items as $item) {
-                $itemProgress = [
-                    'itemid' => $item->id,
-                    'itemtext' => $item->itemtext,
-                    'status' => 'not_started',
-                    'notes' => '',
-                    'dateassessed' => 0
+            foreach ($progress as $item) {
+                $result[] = [
+                    'itemid' => $item->itemid,
+                    'status' => $item->status,
+                    'notes' => $item->assessornotes,
+                    'dateassessed' => $item->dateassessed
                 ];
-
-                if (isset($progress[$item->id])) {
-                    $itemProgress['status'] = $progress[$item->id]->status;
-                    $itemProgress['notes'] = $progress[$item->id]->assessornotes;
-                    $itemProgress['dateassessed'] = $progress[$item->id]->dateassessed;
-                }
-
-                $result[] = $itemProgress;
             }
 
-            return [
-                'success' => true,
-                'data' => $result
-            ];
+            return $result;
 
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-                'data' => []
-            ];
+            return [];
         }
     }
 
     /**
      * Returns description of method result value
-     * @return external_single_structure
+     * @return external_multiple_structure
      */
     public static function execute_returns() {
-        return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'Success status'),
-            'message' => new external_value(PARAM_TEXT, 'Response message', VALUE_OPTIONAL),
-            'data' => new external_multiple_structure(
-                new external_single_structure([
-                    'itemid' => new external_value(PARAM_INT, 'Item ID'),
-                    'itemtext' => new external_value(PARAM_TEXT, 'Item text'),
-                    'status' => new external_value(PARAM_ALPHA, 'Assessment status'),
-                    'notes' => new external_value(PARAM_TEXT, 'Assessment notes'),
-                    'dateassessed' => new external_value(PARAM_INT, 'Date assessed')
-                ])
-            )
-        ]);
+        return new external_multiple_structure(
+            new external_single_structure([
+                'itemid' => new external_value(PARAM_INT, 'Item ID'),
+                'status' => new external_value(PARAM_TEXT, 'Assessment status'),
+                'notes' => new external_value(PARAM_TEXT, 'Assessment notes'),
+                'dateassessed' => new external_value(PARAM_INT, 'Date assessed')
+            ])
+        );
     }
 }
