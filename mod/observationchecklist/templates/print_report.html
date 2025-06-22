@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Observation Checklist Report</title>
+    <style>
+        @media print {
+            body { font-family: Arial, sans-serif; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+        }
+        
+        .report-header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .report-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .report-section {
+            margin-bottom: 25px;
+        }
+        
+        .item-row {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-satisfactory { color: #28a745; font-weight: bold; }
+        .status-not-satisfactory { color: #dc3545; font-weight: bold; }
+        .status-in-progress { color: #ffc107; font-weight: bold; }
+        .status-not-started { color: #6c757d; }
+        
+        @media screen {
+            .print-container {
+                max-width: 800px;
+                margin: 20px auto;
+                padding: 20px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <!-- Report Header -->
+        <div class="report-header">
+            <h1>Workplace Observation Report</h1>
+            <h2>{{checklist_name}}</h2>
+            <p><strong>{{course_name}}</strong></p>
+        </div>
+
+        <!-- Report Information -->
+        <div class="report-info">
+            <div class="student-info">
+                <h4>Student Information</h4>
+                <p><strong>Name:</strong> {{student_name}}</p>
+                <p><strong>Email:</strong> {{student_email}}</p>
+                <p><strong>ID:</strong> {{student_id}}</p>
+            </div>
+            <div class="assessment-info">
+                <h4>Assessment Summary</h4>
+                <p><strong>Total Items:</strong> {{total_items}}</p>
+                <p><strong>Completed:</strong> {{completed_items}}</p>
+                <p><strong>Success Rate:</strong> {{success_rate}}%</p>
+                <p><strong>Report Date:</strong> {{report_date}}</p>
+            </div>
+        </div>
+
+        <!-- Progress Summary -->
+        <div class="report-section">
+            <h3>Progress Overview</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Status</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Count</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Percentage</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Satisfactory</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{satisfactory_count}}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{satisfactory_percentage}}%</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Not Satisfactory</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{not_satisfactory_count}}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{not_satisfactory_percentage}}%</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">In Progress</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{in_progress_count}}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{{in_progress_percentage}}%</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Detailed Items -->
+        <div class="report-section">
+            <h3>Detailed Assessment</h3>
+            {{#items}}
+            <div class="item-row">
+                <div class="item-details" style="flex: 1;">
+                    <h5 style="margin: 0;">{{{item_text}}}</h5>
+                    <small style="color: #666;">Category: {{category}}</small>
+                    {{#date_assessed}}
+                    <br><small style="color: #666;">Assessed: {{date_assessed}}</small>
+                    {{/date_assessed}}
+                </div>
+                <div class="item-status">
+                    <span class="status-{{status_class}}">{{status_text}}</span>
+                </div>
+            </div>
+            {{#assessor_notes}}
+            <div style="margin-left: 20px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #007bff;">
+                <strong>Assessor Notes:</strong> {{assessor_notes}}
+                {{#assessor_name}}
+                <br><small>Assessed by: {{assessor_name}}</small>
+                {{/assessor_name}}
+            </div>
+            {{/assessor_notes}}
+            {{/items}}
+        </div>
+
+        <!-- Footer -->
+        <div class="report-section" style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
+            <p style="text-align: center; color: #666;">
+                This report was generated on {{report_date}} by the Moodle Observation Checklist module.
+            </p>
+        </div>
+    </div>
+
+    <div class="no-print" style="text-align: center; margin: 20px;">
+        <button onclick="window.print()" class="btn btn-primary">Print Report</button>
+        <button onclick="window.close()" class="btn btn-secondary">Close</button>
+    </div>
+</body>
+</html>

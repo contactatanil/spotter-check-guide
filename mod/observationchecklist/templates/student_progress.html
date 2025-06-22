@@ -1,0 +1,110 @@
+
+<div class="student-progress-container">
+    <div class="row">
+        <!-- Progress Summary -->
+        <div class="col-12 mb-4">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-info-circle fa-2x me-3"></i>
+                    <div>
+                        <strong>Student Progress View</strong>
+                        <p class="mb-0">Track your observation progress. Only assessors can mark items as complete.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Progress Cards -->
+        <div class="col-12 mb-4">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <i class="fa fa-tasks fa-2x text-primary mb-2"></i>
+                            <h4 class="text-primary">{{completed_items}}/{{total_items}}</h4>
+                            <p class="card-text">Items Completed</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <i class="fa fa-chart-pie fa-2x text-success mb-2"></i>
+                            <h4 class="text-success">{{success_rate}}%</h4>
+                            <p class="card-text">Success Rate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <i class="fa fa-clock fa-2x text-warning mb-2"></i>
+                            <h4 class="text-warning">{{pending_items}}</h4>
+                            <p class="card-text">Pending Assessment</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Items -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-list-check"></i> My Progress</h5>
+                </div>
+                <div class="card-body">
+                    {{#items}}
+                    <div class="progress-item card mb-3 border-{{status_color}}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">{{{item_text}}}</h6>
+                                    <div class="item-meta">
+                                        <small class="text-muted">
+                                            <i class="fa fa-tag"></i> {{category}}
+                                        </small>
+                                        {{#date_assessed}}
+                                        <small class="text-muted ms-3">
+                                            <i class="fa fa-calendar"></i> Assessed: {{date_assessed}}
+                                        </small>
+                                        {{/date_assessed}}
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="status-display">
+                                        {{#status_icon}}
+                                        <i class="fa {{status_icon}} fa-lg text-{{status_color}} me-2"></i>
+                                        {{/status_icon}}
+                                        <span class="badge bg-{{status_color}}">{{status_text}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {{#has_feedback}}
+                            <div class="feedback-section mt-3 p-3 bg-light rounded">
+                                <h6 class="mb-2"><i class="fa fa-comment-dots"></i> Assessor Feedback</h6>
+                                <p class="mb-1">{{assessor_notes}}</p>
+                                {{#assessor_name}}
+                                <small class="text-muted">
+                                    <i class="fa fa-user"></i> Assessed by: {{assessor_name}}
+                                </small>
+                                {{/assessor_name}}
+                            </div>
+                            {{/has_feedback}}
+                            
+                            {{#can_submit_evidence}}
+                            <div class="evidence-section mt-3">
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitEvidence({{item_id}})">
+                                    <i class="fa fa-upload"></i> Submit Evidence
+                                </button>
+                            </div>
+                            {{/can_submit_evidence}}
+                        </div>
+                    </div>
+                    {{/items}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
