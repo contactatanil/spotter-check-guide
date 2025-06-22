@@ -215,20 +215,22 @@ const PrintReport: React.FC<PrintReportProps> = ({
       </div>
 
       {/* Print Styles */}
-      <style jsx>{`
-        @media print {
-          body {
-            margin: 0;
-            padding: 0;
+      <style>
+        {`
+          @media print {
+            body {
+              margin: 0;
+              padding: 0;
+            }
+            .print\\:hidden {
+              display: none !important;
+            }
+            .break-inside-avoid {
+              break-inside: avoid;
+            }
           }
-          .print\\:hidden {
-            display: none !important;
-          }
-          .break-inside-avoid {
-            break-inside: avoid;
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
