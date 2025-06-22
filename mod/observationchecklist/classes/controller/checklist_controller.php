@@ -8,6 +8,10 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/mod/observationchecklist/locallib.php');
 
+use mod_observationchecklist\event\item_added;
+use mod_observationchecklist\event\assessment_made;
+use mod_observationchecklist\message\notification_manager;
+
 /**
  * Controller for handling checklist actions
  *
@@ -72,12 +76,26 @@ class checklist_controller {
      * Handle add item action
      */
     private function handle_add_item() {
+        global $DB;
+        
         require_capability('mod/observationchecklist:edit', $this->context);
         
         $itemtext = required_param('itemtext', PARAM_TEXT);
         $category = optional_param('category', 'General', PARAM_TEXT);
         
-        observationchecklist_add_item($this->checklist->id, $itemtext, $category, $GLOBALS['USER']->id);
+        $itemid = observationchecklist_add_item($this->checklist->id, $itemtext, $category, $GLOBALS['USER']->id);
+        
+        // Trigger event.
+        $event = item_added::create(array(
+            'objectid' => $itemid,
+            'context' => $this->context,
+            'other' => array(
+                'checklistid' => $this->checklist->id,
+                'itemtext' => $itemtext
+            )
+        ));
+        $event->trigger();
+        
         redirect($this->page->url, get_string('itemadded', 'mod_observationchecklist'));
     }
     
@@ -85,6 +103,8 @@ class checklist_controller {
      * Handle assess item action
      */
     private function handle_assess_item($itemid) {
+        global $DB;
+        
         require_capability('mod/observationchecklist:assess', $this->context);
         
         $studentid = required_param('studentid', PARAM_INT);
@@ -92,6 +112,24 @@ class checklist_controller {
         $notes = optional_param('notes', '', PARAM_TEXT);
         
         observationchecklist_assess_item($itemid, $studentid, $status, $notes, $GLOBALS['USER']->id);
+        
+        // Trigger event.
+        $event = assessment_made::create(array(
+            'objectid' => $itemid,
+            'context' => $this->context,
+            'relateduserid' => $studentid,
+            'other' => array(
+                'status' => $status,
+                'checklistid' => $this->checklist->id
+            )
+        ));
+        $event->trigger();
+        
+        // Send notification.
+        $student = $DB->get_record('user', array('id' => $studentid));
+        $item = $DB->get_record('observationchecklist_items', array('id' => $itemid));
+        notification_manager::send_assessment_notification($student, $this->checklist, $item, $status);
+        
         redirect($this->page->url, get_string('assessmentadded', 'mod_observationchecklist'));
     }
     
@@ -105,3 +143,4 @@ class checklist_controller {
         redirect($this->page->url, get_string('itemdeleted', 'mod_observationchecklist'));
     }
 }
+
