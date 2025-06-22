@@ -1,11 +1,24 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-
-defined('MOODLE_INTERNAL') || die();
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
 /**
- * Structure step to restore one observationchecklist activity
+ * Restore steps for mod_observationchecklist.
+ *
+ * @package     mod_observationchecklist
+ * @copyright   2024 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die;
+
+/**
+ * Structure step to restore one observation checklist activity.
  */
 class restore_observationchecklist_activity_structure_step extends restore_activity_structure_step {
 
@@ -17,10 +30,10 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $paths[] = new restore_path_element('observationchecklist', '/activity/observationchecklist');
         $paths[] = new restore_path_element('observationchecklist_item', '/activity/observationchecklist/items/item');
         if ($userinfo) {
-            $paths[] = new restore_path_element('observationchecklist_user_item', '/activity/observationchecklist/useritems/useritem');
+            $paths[] = new restore_path_element('observationchecklist_useritem', '/activity/observationchecklist/useritems/useritem');
         }
 
-        // Return the paths wrapped into standard activity structure
+        // Return the paths wrapped into standard activity structure.
         return $this->prepare_activity_structure($paths);
     }
 
@@ -31,12 +44,12 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $oldid = $data->id;
         $data->course = $this->get_courseid();
 
-        $data->timemodified = $this->apply_date_offset($data->timemodified);
         $data->timecreated = $this->apply_date_offset($data->timecreated);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
 
-        // insert the observationchecklist record
+        // Insert the observation checklist record.
         $newitemid = $DB->insert_record('observationchecklist', $data);
-        // immediately after inserting "activity" record, call this
+        // Immediately after inserting "activity" record, call this.
         $this->apply_activity_instance($newitemid);
     }
 
@@ -54,7 +67,7 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $this->set_mapping('observationchecklist_item', $oldid, $newitemid);
     }
 
-    protected function process_observationchecklist_user_item($data) {
+    protected function process_observationchecklist_useritem($data) {
         global $DB;
 
         $data = (object)$data;
@@ -62,6 +75,8 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $data->checklistid = $this->get_new_parentid('observationchecklist');
         $data->itemid = $this->get_mappingid('observationchecklist_item', $data->itemid);
         $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->assessorid = $this->get_mappingid('user', $data->assessorid);
+        $data->dateassessed = $this->apply_date_offset($data->dateassessed);
         $data->timecreated = $this->apply_date_offset($data->timecreated);
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
@@ -69,7 +84,7 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
     }
 
     protected function after_execute() {
-        // Add observationchecklist related files, no need to match by itemname (just internally handled context)
+        // Add observation checklist related files, no need to match by itemname (just internally handled context).
         $this->add_related_files('mod_observationchecklist', 'intro', null);
     }
 }

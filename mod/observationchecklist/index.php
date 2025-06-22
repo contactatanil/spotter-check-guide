@@ -7,10 +7,17 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once(dirname(__FILE__).'/lib.php');
+/**
+ * Display information about all the mod_observationchecklist modules in the requested course.
+ *
+ * @package     mod_observationchecklist
+ * @copyright   2024 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-$id = required_param('id', PARAM_INT);   // course
+require_once('../../config.php');
+
+$id = required_param('id', PARAM_INT);
 
 $course = $DB->get_record('course', array('id' => $id), '*', MUST_EXIST);
 
@@ -25,8 +32,14 @@ $PAGE->set_context($coursecontext);
 
 echo $OUTPUT->header();
 
-if (! $observationchecklists = get_all_instances_in_course('observationchecklist', $course)) {
-    notice(get_string('noobservationchecklists', 'observationchecklist'), new moodle_url('/course/view.php', array('id' => $course->id)));
+$modulenameplural = get_string('modulenameplural', 'mod_observationchecklist');
+echo $OUTPUT->heading($modulenameplural);
+
+$observationchecklists = get_all_instances_in_course('observationchecklist', $course);
+
+if (empty($observationchecklists)) {
+    notice(get_string('noobservationchecklists', 'mod_observationchecklist'), 
+           new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 
 $table = new html_table();
@@ -37,10 +50,10 @@ if ($course->format == 'weeks') {
     $table->align = array('center', 'left');
 } else if ($course->format == 'topics') {
     $table->head  = array(get_string('topic'), get_string('name'));
-    $table->align = array('center', 'left', 'left', 'left');
+    $table->align = array('center', 'left');
 } else {
     $table->head  = array(get_string('name'));
-    $table->align = array('left', 'left', 'left');
+    $table->align = array('left');
 }
 
 foreach ($observationchecklists as $observationchecklist) {
@@ -62,6 +75,5 @@ foreach ($observationchecklists as $observationchecklist) {
     }
 }
 
-echo $OUTPUT->heading(get_string('modulenameplural', 'observationchecklist'), 2);
 echo html_writer::table($table);
 echo $OUTPUT->footer();
