@@ -60,7 +60,7 @@ class get_user_progress extends external_api {
         try {
             // Get all checklist items
             $items = $DB->get_records('observationchecklist_items', 
-                ['checklistid' => $cm->instance], 'position ASC');
+                ['checklistid' => $cm->instance], 'sortorder ASC');
 
             // Get user progress
             $progress = $DB->get_records('observationchecklist_user_items', [

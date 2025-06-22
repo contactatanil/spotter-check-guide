@@ -7,7 +7,6 @@ namespace mod_observationchecklist\external;
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
-require_once($CFG->dirroot . '/mod/observationchecklist/locallib.php');
 
 use external_api;
 use external_function_parameters;
@@ -60,30 +59,36 @@ class save_multi_observations extends external_api {
 
         foreach ($params['observations'] as $observation) {
             try {
-                $result = observationchecklist_assess_item(
-                    $observation['itemId'],
-                    $observation['studentId'],
-                    $observation['status'],
-                    $observation['notes'],
-                    $USER->id
-                );
-                
-                if ($result) {
-                    $success_count++;
-                    
-                    // Trigger assessment event
-                    $event = \mod_observationchecklist\event\assessment_made::create([
-                        'objectid' => $observation['itemId'],
-                        'context' => $context,
-                        'relateduserid' => $observation['studentId'],
-                        'other' => [
-                            'status' => $observation['status'],
-                            'checklistid' => $cm->instance,
-                            'multi_student' => true
-                        ]
-                    ]);
-                    $event->trigger();
+                // Check if assessment already exists
+                $existing = $DB->get_record('observationchecklist_user_items', [
+                    'checklistid' => $cm->instance,
+                    'itemid' => $observation['itemId'],
+                    'userid' => $observation['studentId']
+                ]);
+
+                $assessment = new \stdClass();
+                $assessment->checklistid = $cm->instance;
+                $assessment->itemid = $observation['itemId'];
+                $assessment->userid = $observation['studentId'];
+                $assessment->status = $observation['status'];
+                $assessment->assessornotes = clean_param($observation['notes'], PARAM_TEXT);
+                $assessment->assessorid = $USER->id;
+                $assessment->dateassessed = time();
+                $assessment->timemodified = time();
+
+                if ($existing) {
+                    // Update existing assessment
+                    $assessment->id = $existing->id;
+                    $assessment->timecreated = $existing->timecreated;
+                    $DB->update_record('observationchecklist_user_items', $assessment);
+                } else {
+                    // Create new assessment
+                    $assessment->timecreated = time();
+                    $DB->insert_record('observationchecklist_user_items', $assessment);
                 }
+                
+                $success_count++;
+                
             } catch (Exception $e) {
                 $errors[] = $e->getMessage();
             }
@@ -94,7 +99,7 @@ class save_multi_observations extends external_api {
             'saved_count' => $success_count,
             'total_count' => count($params['observations']),
             'errors' => $errors,
-            'message' => get_string('multiobservationssaved', 'mod_observationchecklist', $success_count)
+            'message' => "Successfully saved {$success_count} observations"
         ];
     }
 

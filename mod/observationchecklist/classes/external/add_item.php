@@ -57,19 +57,12 @@ class add_item extends external_api {
             $item->checklistid = $cm->instance;
             $item->itemtext = clean_param($params['itemtext'], PARAM_TEXT);
             $item->userid = $USER->id;
-            $item->position = $DB->count_records('observationchecklist_items', ['checklistid' => $cm->instance]) + 1;
+            $item->sortorder = $DB->count_records('observationchecklist_items', ['checklistid' => $cm->instance]) + 1;
+            $item->position = $item->sortorder;
             $item->timecreated = time();
             $item->timemodified = time();
 
             $itemid = $DB->insert_record('observationchecklist_items', $item);
-
-            // Trigger event
-            $event = \mod_observationchecklist\event\item_added::create([
-                'objectid' => $itemid,
-                'context' => $context,
-                'other' => ['itemtext' => $item->itemtext]
-            ]);
-            $event->trigger();
 
             return [
                 'success' => true,
