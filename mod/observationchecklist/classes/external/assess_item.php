@@ -1,6 +1,11 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
 namespace mod_observationchecklist\external;
 
@@ -13,9 +18,14 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use context_module;
+use invalid_parameter_exception;
 
 /**
  * External API for assessing checklist items
+ *
+ * @package     mod_observationchecklist
+ * @copyright   2024 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assess_item extends external_api {
 
@@ -53,24 +63,39 @@ class assess_item extends external_api {
             'notes' => $notes
         ]);
 
-        // Get course module and context
+        // Get course module and context.
         $cm = get_coursemodule_from_id('observationchecklist', $params['cmid'], 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
         
-        // Check capabilities
-        require_capability('mod/observationchecklist:assess', $context);
+        // Validate context and check capabilities.
+        self::validate_context($context);
+        require_capability('mod/observ ationchecklist:assess', $context);
 
-        // Validate status
-        $valid_statuses = ['satisfactory', 'not_satisfactory'];
+        // Validate that the item belongs to this checklist.
+        $item = $DB->get_record('observationchecklist_items', [
+            'id' => $params['itemid'],
+            'checklistid' => $cm->instance
+        ]);
+        
+        if (!$item) {
+            throw new invalid_parameter_exception('Invalid item ID for this checklist');
+        }
+
+        // Validate that the user is enrolled in the course.
+        $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+        $coursecontext = \context_course::instance($course->id);
+        if (!is_enrolled($coursecontext, $params['userid'])) {
+            throw new invalid_parameter_exception('User is not enrolled in this course');
+        }
+
+        // Validate status.
+        $valid_statuses = ['satisfactory', 'not_satisfactory', 'in_progress', 'not_started'];
         if (!in_array($params['status'], $valid_statuses)) {
-            return [
-                'success' => false,
-                'message' => 'Invalid status provided'
-            ];
+            throw new invalid_parameter_exception('Invalid status provided');
         }
 
         try {
-            // Check if assessment already exists
+            // Check if assessment already exists.
             $existing = $DB->get_record('observationchecklist_user_items', [
                 'checklistid' => $cm->instance,
                 'itemid' => $params['itemid'],
@@ -85,17 +110,20 @@ class assess_item extends external_api {
             $assessment->assessornotes = clean_param($params['notes'], PARAM_TEXT);
             $assessment->assessorid = $USER->id;
             $assessment->dateassessed = time();
+            $assessment->timemodified = time();
 
             if ($existing) {
-                // Update existing assessment
+                // Update existing assessment.
                 $assessment->id = $existing->id;
+                $assessment->timecreated = $existing->timecreated;
                 $DB->update_record('observationchecklist_user_items', $assessment);
             } else {
-                // Create new assessment
+                // Create new assessment.
+                $assessment->timecreated = time();
                 $DB->insert_record('observationchecklist_user_items', $assessment);
             }
 
-            // Trigger event
+            // Trigger event.
             $event = \mod_observationchecklist\event\assessment_made::create([
                 'objectid' => $params['itemid'],
                 'context' => $context,

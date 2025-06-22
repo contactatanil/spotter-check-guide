@@ -1,0 +1,61 @@
+
+/* 
+ * Mobile styles for mod_observationchecklist
+ *
+ * @package     mod_observationchecklist
+ * @copyright   2024 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.addon-mod-observationchecklist .checklist-item {
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.addon-mod-observationchecklist .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.addon-mod-observationchecklist .status-satisfactory {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.addon-mod-observationchecklist .status-not-satisfactory {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.addon-mod-observationchecklist .status-in-progress {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.addon-mod-observationchecklist .status-not-started {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.addon-mod-observationchecklist .progress-container {
+    margin: 15px 0;
+}
+
+.addon-mod-observationchecklist .progress-bar {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    height: 20px;
+    overflow: hidden;
+}
+
+.addon-mod-observationchecklist .progress-fill {
+    background-color: #28a745;
+    height: 100%;
+    transition: width 0.3s ease;
+}

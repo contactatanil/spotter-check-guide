@@ -15,7 +15,9 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once('../../config.php');
+require(__DIR__.'/../../config.php');
+
+require_once(__DIR__.'/lib.php');
 
 $id = required_param('id', PARAM_INT);
 
@@ -24,6 +26,12 @@ $course = $DB->get_record('course', array('id' => $id), '*', MUST_EXIST);
 require_course_login($course);
 
 $coursecontext = context_course::instance($course->id);
+
+$event = \mod_observationchecklist\event\course_module_instance_list_viewed::create(array(
+    'context' => $coursecontext
+));
+$event->add_record_snapshot('course', $course);
+$event->trigger();
 
 $PAGE->set_url('/mod/observationchecklist/index.php', array('id' => $id));
 $PAGE->set_title(format_string($course->fullname));
@@ -38,8 +46,7 @@ echo $OUTPUT->heading($modulenameplural);
 $observationchecklists = get_all_instances_in_course('observationchecklist', $course);
 
 if (empty($observationchecklists)) {
-    notice(get_string('noobservationchecklists', 'mod_observationchecklist'), 
-           new moodle_url('/course/view.php', array('id' => $course->id)));
+    notice(get_string('noobservationchecklists', 'mod_observationchecklist'), new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 
 $table = new html_table();
