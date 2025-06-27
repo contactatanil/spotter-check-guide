@@ -19,67 +19,32 @@ function xmldb_observationchecklist_install() {
     global $DB, $CFG;
     
     try {
-        // Set longer timeout for installation
-        if (method_exists($DB, 'set_timeout')) {
-            $DB->set_timeout(300);
-        }
-        
-        // Ensure UTF-8 encoding for MariaDB/MySQL
+        // Basic database setup
         if ($DB->get_dbfamily() === 'mysql') {
-            try {
-                $DB->execute("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
-                $DB->execute("SET sql_mode = ''");
-                $DB->execute("SET foreign_key_checks = 0");
-            } catch (Exception $e) {
-                // Continue if these fail - they're optimization attempts
-                debugging('Warning during database setup: ' . $e->getMessage(), DEBUG_DEVELOPER);
-            }
+            $DB->execute("SET sql_mode = 'TRADITIONAL'");
         }
         
-        // Verify that all required tables were created successfully
+        // Verify that required tables were created
         $dbman = $DB->get_manager();
         
-        $tables_to_check = [
+        $required_tables = [
             'observationchecklist',
             'observationchecklist_items', 
             'observationchecklist_user_items',
             'observationchecklist_grades'
         ];
         
-        $missing_tables = [];
-        foreach ($tables_to_check as $tablename) {
+        foreach ($required_tables as $tablename) {
             $table = new xmldb_table($tablename);
             if (!$dbman->table_exists($table)) {
-                $missing_tables[] = $tablename;
+                debugging("Table {$tablename} was not created during installation", DEBUG_DEVELOPER);
             }
-        }
-        
-        if (!empty($missing_tables)) {
-            debugging("Tables not created during installation: " . implode(', ', $missing_tables), DEBUG_DEVELOPER);
-            // Don't return false - let Moodle handle the error
-        }
-        
-        // Re-enable foreign key checks
-        if ($DB->get_dbfamily() === 'mysql') {
-            try {
-                $DB->execute("SET foreign_key_checks = 1");
-            } catch (Exception $e) {
-                // Continue if this fails
-                debugging('Warning re-enabling foreign key checks: ' . $e->getMessage(), DEBUG_DEVELOPER);
-            }
-        }
-        
-        // Clear any caches
-        if (function_exists('purge_all_caches')) {
-            purge_all_caches();
         }
         
         return true;
         
     } catch (Exception $e) {
         debugging('Error during observationchecklist installation: ' . $e->getMessage(), DEBUG_DEVELOPER);
-        // Log the full error for debugging
-        error_log('Observationchecklist installation error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
         return false;
     }
 }
