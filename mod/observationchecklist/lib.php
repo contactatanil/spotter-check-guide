@@ -11,6 +11,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Log lib.php loading
+$logdir = $CFG->dataroot . '/temp';
+if (!is_dir($logdir)) {
+    mkdir($logdir, 0777, true);
+}
+error_log("Loading observationchecklist lib.php");
+
 /**
  * Return if the plugin supports $feature.
  *

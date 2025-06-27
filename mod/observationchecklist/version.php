@@ -25,10 +25,30 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Log the version loading
+$logdir = $CFG->dataroot . '/temp';
+if (!is_dir($logdir)) {
+    mkdir($logdir, 0777, true);
+}
+$version_log = $logdir . '/observationchecklist_version_' . date('Y-m-d_H-i-s') . '.log';
+error_log("Loading observationchecklist version.php - log: $version_log");
+
+$plugin = new stdClass();
 $plugin->component = 'mod_observationchecklist';
-$plugin->version = 2024122704; // Updated version to trigger logging
-$plugin->release = '1.0.4';
+$plugin->version = 2024122705; // Updated version to trigger detailed logging
+$plugin->release = '1.0.5';
 $plugin->requires = 2022112800; // Moodle 4.1 minimum
 $plugin->maturity = MATURITY_STABLE;
 $plugin->supported = [401, 405]; // Moodle 4.1-4.5 supported
 $plugin->dependencies = array(); // No dependencies
+
+// Log version info
+file_put_contents($version_log, 
+    "[" . date('Y-m-d H:i:s') . "] Version file loaded successfully\n" .
+    "[" . date('Y-m-d H:i:s') . "] Component: " . $plugin->component . "\n" .
+    "[" . date('Y-m-d H:i:s') . "] Version: " . $plugin->version . "\n" .
+    "[" . date('Y-m-d H:i:s') . "] Release: " . $plugin->release . "\n" .
+    "[" . date('Y-m-d H:i:s') . "] Moodle version: " . $CFG->version . "\n"
+);
+
+error_log("observationchecklist version.php loaded - version: {$plugin->version}");
