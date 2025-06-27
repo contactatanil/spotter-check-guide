@@ -1,19 +1,6 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Library of interface functions and constants for module observationchecklist
@@ -65,22 +52,32 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->timecreated = time();
     $observationchecklist->timemodified = time();
 
-    // Process intro editor
-    if (isset($observationchecklist->introeditor)) {
-        $observationchecklist->introformat = $observationchecklist->introeditor['format'];
-        $observationchecklist->intro = $observationchecklist->introeditor['text'];
-        unset($observationchecklist->introeditor);
+    // Set default values for new fields if not provided
+    if (!isset($observationchecklist->allowstudentadd)) {
+        $observationchecklist->allowstudentadd = 1;
+    }
+    if (!isset($observationchecklist->allowstudentsubmit)) {
+        $observationchecklist->allowstudentsubmit = 1;
+    }
+    if (!isset($observationchecklist->enableprinting)) {
+        $observationchecklist->enableprinting = 1;
     }
 
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
 
-    // Process intro files
-    $cmid = $observationchecklist->coursemodule;
-    $draftid_editor = $observationchecklist->intro ?? '';
-    if ($draftid_editor) {
+    // Process intro files if we have the form
+    if ($mform) {
+        $cmid = $observationchecklist->coursemodule;
         $context = context_module::instance($cmid);
-        $observationchecklist->intro = file_save_draft_area_files($draftid_editor, $context->id,
-                'mod_observationchecklist', 'intro', 0, array('subdirs' => true), $observationchecklist->intro);
+        $observationchecklist->intro = file_save_draft_area_files(
+            $observationchecklist->intro,
+            $context->id,
+            'mod_observationchecklist',
+            'intro',
+            0,
+            array('subdirs' => true),
+            $observationchecklist->intro
+        );
         $DB->update_record('observationchecklist', $observationchecklist);
     }
 
@@ -100,11 +97,19 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     $observationchecklist->timemodified = time();
     $observationchecklist->id = $observationchecklist->instance;
 
-    // Process intro editor
-    if (isset($observationchecklist->introeditor)) {
-        $observationchecklist->introformat = $observationchecklist->introeditor['format'];
-        $observationchecklist->intro = $observationchecklist->introeditor['text'];
-        unset($observationchecklist->introeditor);
+    // Process intro files if we have the form
+    if ($mform) {
+        $cmid = $observationchecklist->coursemodule;
+        $context = context_module::instance($cmid);
+        $observationchecklist->intro = file_save_draft_area_files(
+            $observationchecklist->intro,
+            $context->id,
+            'mod_observationchecklist',
+            'intro',
+            0,
+            array('subdirs' => true),
+            $observationchecklist->intro
+        );
     }
 
     return $DB->update_record('observationchecklist', $observationchecklist);
