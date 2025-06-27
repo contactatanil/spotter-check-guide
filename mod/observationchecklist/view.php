@@ -32,7 +32,7 @@ if ($id) {
     $course     = $DB->get_record('course', array('id' => $observationchecklist->course), '*', MUST_EXIST);
     $cm         = get_coursemodule_from_instance('observationchecklist', $observationchecklist->id, $course->id, false, MUST_EXIST);
 } else {
-    print_error('missingidandcmid', 'mod_observationchecklist');
+    throw new moodle_exception('missingidandcmid', 'mod_observationchecklist');
 }
 
 require_login($course, true, $cm);
@@ -74,6 +74,15 @@ if ($action && confirm_sesskey()) {
                     $item->timemodified = time();
                     
                     $DB->insert_record('observationchecklist_items', $item);
+                    
+                    // Trigger item added event
+                    $event = \mod_observationchecklist\event\item_added::create(array(
+                        'objectid' => $item->id ?? 0,
+                        'context' => $context,
+                        'other' => array('checklistid' => $observationchecklist->id)
+                    ));
+                    $event->trigger();
+                    
                     redirect($PAGE->url, get_string('itemadded', 'mod_observationchecklist'));
                 }
             }
@@ -83,6 +92,7 @@ if ($action && confirm_sesskey()) {
             if (has_capability('mod/observationchecklist:edit', $context)) {
                 $itemid = required_param('itemid', PARAM_INT);
                 $DB->delete_records('observationchecklist_items', array('id' => $itemid));
+                $DB->delete_records('observationchecklist_user_items', array('itemid' => $itemid));
                 redirect($PAGE->url, get_string('itemdeleted', 'mod_observationchecklist'));
             }
             break;
@@ -103,17 +113,17 @@ $items = $DB->get_records('observationchecklist_items', array('checklistid' => $
 
 if (has_capability('mod/observationchecklist:edit', $context)) {
     echo '<div class="card mt-3">';
-    echo '<div class="card-header"><h5>'.get_string('addnewitem', 'mod_observationchecklist').'</h5></div>';
+    echo '<div class="card-header"><h5 class="mb-0">'.get_string('addnewitem', 'mod_observationchecklist').'</h5></div>';
     echo '<div class="card-body">';
     echo '<form method="post" action="'.$PAGE->url.'">';
     echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
     echo '<input type="hidden" name="action" value="additem" />';
-    echo '<div class="form-group mb-3">';
-    echo '<label for="itemtext">'.get_string('itemtext', 'mod_observationchecklist').'</label>';
+    echo '<div class="mb-3">';
+    echo '<label for="itemtext" class="form-label">'.get_string('itemtext', 'mod_observationchecklist').'</label>';
     echo '<textarea class="form-control" id="itemtext" name="itemtext" rows="3" required></textarea>';
     echo '</div>';
-    echo '<div class="form-group mb-3">';
-    echo '<label for="category">'.get_string('category', 'mod_observationchecklist').'</label>';
+    echo '<div class="mb-3">';
+    echo '<label for="category" class="form-label">'.get_string('category', 'mod_observationchecklist').'</label>';
     echo '<input type="text" class="form-control" id="category" name="category" value="General" />';
     echo '</div>';
     echo '<button type="submit" class="btn btn-primary">'.get_string('additem', 'mod_observationchecklist').'</button>';
@@ -125,21 +135,22 @@ if (has_capability('mod/observationchecklist:edit', $context)) {
 // Display items
 if (!empty($items)) {
     echo '<div class="card mt-3">';
-    echo '<div class="card-header"><h5>'.get_string('assessmentitems', 'mod_observationchecklist').'</h5></div>';
+    echo '<div class="card-header"><h5 class="mb-0">'.get_string('assessmentitems', 'mod_observationchecklist').'</h5></div>';
     echo '<div class="card-body">';
+    echo '<div class="list-group list-group-flush">';
     
     foreach ($items as $item) {
         echo '<div class="list-group-item d-flex justify-content-between align-items-start">';
         echo '<div class="me-auto">';
         echo '<div class="fw-bold">'.format_text($item->itemtext).'</div>';
-        echo '<small class="text-muted">Category: '.format_string($item->category).'</small>';
+        echo '<small class="text-muted">'.get_string('category', 'mod_observationchecklist').': '.format_string($item->category).'</small>';
         echo '</div>';
         
         if (has_capability('mod/observationchecklist:edit', $context)) {
             echo '<a href="'.$PAGE->url.'?action=deleteitem&itemid='.$item->id.'&sesskey='.sesskey().'" ';
             echo 'class="btn btn-sm btn-outline-danger" ';
             echo 'onclick="return confirm(\''.get_string('confirmdeleteitem', 'mod_observationchecklist').'\')">';
-            echo get_string('delete', 'mod_observationchecklist');
+            echo '<i class="fa fa-trash"></i> '.get_string('delete', 'mod_observationchecklist');
             echo '</a>';
         }
         echo '</div>';
@@ -147,8 +158,10 @@ if (!empty($items)) {
     
     echo '</div>';
     echo '</div>';
+    echo '</div>';
 } else {
     echo '<div class="alert alert-info mt-3">';
+    echo '<i class="fa fa-info-circle"></i> ';
     echo get_string('noitemsfound', 'mod_observationchecklist');
     echo '</div>';
 }
@@ -158,7 +171,7 @@ if (has_capability('mod/observationchecklist:assess', $context)) {
     $students = get_enrolled_users($context, 'mod/observationchecklist:submit');
     if (!empty($students)) {
         echo '<div class="card mt-3">';
-        echo '<div class="card-header"><h5>'.get_string('studentassessment', 'mod_observationchecklist').'</h5></div>';
+        echo '<div class="card-header"><h5 class="mb-0">'.get_string('studentassessment', 'mod_observationchecklist').'</h5></div>';
         echo '<div class="card-body">';
         echo '<p>'.get_string('choosestudentmessage', 'mod_observationchecklist').'</p>';
         
@@ -167,6 +180,7 @@ if (has_capability('mod/observationchecklist:assess', $context)) {
             echo '<a href="assess.php?id='.$cm->id.'&userid='.$student->id.'" class="list-group-item list-group-item-action">';
             echo '<div class="d-flex w-100 justify-content-between">';
             echo '<h6 class="mb-1">'.fullname($student).'</h6>';
+            echo '<small class="text-muted">'.$student->email.'</small>';
             echo '</div>';
             echo '</a>';
         }

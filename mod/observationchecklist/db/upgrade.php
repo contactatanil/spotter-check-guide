@@ -42,5 +42,31 @@ function xmldb_observationchecklist_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2024062201, 'observationchecklist');
     }
 
+    if ($oldversion < 2024062701) {
+        // Add new fields for Moodle 4.0+ compatibility
+        $table = new xmldb_table('observationchecklist');
+        
+        // Add allowstudentadd field if it doesn't exist
+        $field = new xmldb_field('allowstudentadd', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'descriptionformat');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        
+        // Add allowstudentsubmit field if it doesn't exist
+        $field = new xmldb_field('allowstudentsubmit', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'allowstudentadd');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        
+        // Add enableprinting field if it doesn't exist
+        $field = new xmldb_field('enableprinting', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'allowstudentsubmit');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Observationchecklist savepoint reached.
+        upgrade_mod_savepoint(true, 2024062701, 'observationchecklist');
+    }
+
     return true;
 }

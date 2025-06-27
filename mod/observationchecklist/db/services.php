@@ -26,6 +26,7 @@ $functions = array(
         'type'        => 'write',
         'ajax'        => true,
         'capabilities' => 'mod/observationchecklist:edit',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'mod_observationchecklist_delete_item' => array(
         'classname'   => 'mod_observationchecklist\external\delete_item',
@@ -35,6 +36,27 @@ $functions = array(
         'type'        => 'write',
         'ajax'        => true,
         'capabilities' => 'mod/observationchecklist:edit',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'mod_observationchecklist_assess_item' => array(
+        'classname'   => 'mod_observationchecklist\external\assess_item',
+        'methodname'  => 'execute',
+        'classpath'   => '',
+        'description' => 'Assess a checklist item for a user',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'mod/observationchecklist:assess',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'mod_observationchecklist_get_user_progress' => array(
+        'classname'   => 'mod_observationchecklist\external\get_user_progress',
+        'methodname'  => 'execute',
+        'classpath'   => '',
+        'description' => 'Get user progress for a checklist',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'mod/observationchecklist:view',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
 );
 
@@ -43,8 +65,13 @@ $services = array(
         'functions' => array(
             'mod_observationchecklist_add_item',
             'mod_observationchecklist_delete_item',
+            'mod_observationchecklist_assess_item',
+            'mod_observationchecklist_get_user_progress',
         ),
         'restrictedusers' => 0,
         'enabled' => 1,
+        'shortname' => 'observationchecklist',
+        'downloadfiles' => 0,
+        'uploadfiles' => 0,
     ),
 );

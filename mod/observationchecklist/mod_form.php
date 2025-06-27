@@ -37,11 +37,7 @@ class mod_observationchecklist_mod_form extends moodleform_mod {
 
         // Adding the standard "name" field
         $mform->addElement('text', 'name', get_string('checklistname', 'mod_observationchecklist'), array('size' => '64'));
-        if (!empty($CFG->formatstringstriptags)) {
-            $mform->setType('name', PARAM_TEXT);
-        } else {
-            $mform->setType('name', PARAM_CLEANHTML);
-        }
+        $mform->setType('name', PARAM_TEXT);
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('name', 'checklistname', 'mod_observationchecklist');
@@ -51,9 +47,28 @@ class mod_observationchecklist_mod_form extends moodleform_mod {
 
         // Adding the description field
         $mform->addElement('editor', 'description_editor', get_string('description', 'mod_observationchecklist'), 
-                          null, array('maxfiles' => EDITOR_UNLIMITED_FILES, 'noclean' => true, 'context' => $this->context));
+                          array('rows' => 10), 
+                          array('maxfiles' => EDITOR_UNLIMITED_FILES, 'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('description_editor', PARAM_RAW);
         $mform->addHelpButton('description_editor', 'description', 'mod_observationchecklist');
+
+        // Observationchecklist specific settings
+        $mform->addElement('header', 'observationchecklistsettings', get_string('settings', 'mod_observationchecklist'));
+
+        // Allow students to add items
+        $mform->addElement('selectyesno', 'allowstudentadd', get_string('allowstudentadd', 'mod_observationchecklist'));
+        $mform->setDefault('allowstudentadd', 1);
+        $mform->addHelpButton('allowstudentadd', 'allowstudentadd', 'mod_observationchecklist');
+
+        // Allow students to submit
+        $mform->addElement('selectyesno', 'allowstudentsubmit', get_string('allowstudentsubmit', 'mod_observationchecklist'));
+        $mform->setDefault('allowstudentsubmit', 1);
+        $mform->addHelpButton('allowstudentsubmit', 'allowstudentsubmit', 'mod_observationchecklist');
+
+        // Enable printing
+        $mform->addElement('selectyesno', 'enableprinting', get_string('enableprinting', 'mod_observationchecklist'));
+        $mform->setDefault('enableprinting', 1);
+        $mform->addHelpButton('enableprinting', 'enableprinting', 'mod_observationchecklist');
 
         // Add standard elements, common to all modules
         $this->standard_coursemodule_elements();
@@ -94,9 +109,9 @@ class mod_observationchecklist_mod_form extends moodleform_mod {
                 'description',
                 0,
                 array('subdirs' => true),
-                $defaultvalues['description']
+                $defaultvalues['description'] ?? ''
             );
-            $defaultvalues['description_editor']['format'] = $defaultvalues['descriptionformat'];
+            $defaultvalues['description_editor']['format'] = $defaultvalues['descriptionformat'] ?? FORMAT_HTML;
             $defaultvalues['description_editor']['itemid'] = $draftitemid;
         }
     }

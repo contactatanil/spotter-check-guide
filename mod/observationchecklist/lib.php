@@ -47,6 +47,10 @@ function observationchecklist_supports($feature) {
             return false;
         case FEATURE_MOD_PURPOSE:
             return MOD_PURPOSE_ASSESSMENT;
+        case FEATURE_GROUPS:
+            return true;
+        case FEATURE_GROUPINGS:
+            return true;
         default:
             return null;
     }
@@ -75,11 +79,13 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
 
     // Process files in description
-    if (!empty($observationchecklist->description)) {
+    if (!empty($observationchecklist->description) && !empty($observationchecklist->coursemodule)) {
         $cmid = $observationchecklist->coursemodule;
         $context = context_module::instance($cmid);
+        
+        $draftitemid = file_get_submitted_draft_itemid('description_editor');
         $observationchecklist->description = file_save_draft_area_files(
-            $observationchecklist->description,
+            $draftitemid,
             $context->id,
             'mod_observationchecklist',
             'description',
@@ -114,11 +120,13 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     }
 
     // Process files in description
-    if (!empty($observationchecklist->description)) {
+    if (!empty($observationchecklist->description) && !empty($observationchecklist->coursemodule)) {
         $cmid = $observationchecklist->coursemodule;
         $context = context_module::instance($cmid);
+        
+        $draftitemid = file_get_submitted_draft_itemid('description_editor');
         $observationchecklist->description = file_save_draft_area_files(
-            $observationchecklist->description,
+            $draftitemid,
             $context->id,
             'mod_observationchecklist',
             'description',
@@ -180,8 +188,6 @@ function observationchecklist_get_file_areas($course, $cm, $context) {
  * @param array $options additional options affecting the file serving
  */
 function observationchecklist_pluginfile($course, $cm, $context, $filearea, array $args, $forcedownload, array $options = array()) {
-    global $DB, $CFG;
-
     if ($context->contextlevel != CONTEXT_MODULE) {
         send_file_not_found();
     }
@@ -196,11 +202,34 @@ function observationchecklist_pluginfile($course, $cm, $context, $filearea, arra
     $fullpath = rtrim("/$context->id/mod_observationchecklist/$filearea/$relativepath", '/');
 
     $fs = get_file_storage();
-    $file = $fs->get_file_by_hash(sha1($fullpath));
-
-    if (!$file || $file->is_directory()) {
+    if (!$file = $fs->get_file_by_hash(sha1($fullpath)) or $file->is_directory()) {
         send_file_not_found();
     }
 
     send_stored_file($file, 86400, 0, $forcedownload, $options);
+}
+
+/**
+ * Extend the settings navigation with the observationchecklist settings
+ *
+ * @param settings_navigation $settingsnav
+ * @param navigation_node $observationchecklistnode
+ */
+function observationchecklist_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $observationchecklistnode=null) {
+    // Add any additional navigation items here if needed
+}
+
+/**
+ * Callback to fetch the activity fresh results
+ *
+ * @param int $observationchecklistid
+ * @return string
+ */
+function observationchecklist_get_completion_state($course, $cm, $userid, $type) {
+    global $DB;
+
+    $observationchecklist = $DB->get_record('observationchecklist', array('id' => $cm->instance), '*', MUST_EXIST);
+    
+    // For now, just return that it's complete when viewed
+    return $type;
 }
