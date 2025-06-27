@@ -24,6 +24,8 @@ $string['observationchecklist:assess'] = 'Assess observation checklist items';
 $string['observationchecklist:submit'] = 'Submit observation checklist';
 
 // Form elements
+$string['observationchecklistname'] = 'Observation checklist name';
+$string['observationchecklistname_help'] = 'This is the content of the help tooltip associated with the name field.';
 $string['name'] = 'Name';
 $string['description'] = 'Description';
 $string['itemtext'] = 'Item text';
@@ -33,6 +35,15 @@ $string['addnewitem'] = 'Add new item';
 $string['assessmentitems'] = 'Assessment items';
 $string['studentassessment'] = 'Student assessment';
 $string['choosestudentmessage'] = 'Choose a student to assess:';
+
+// Settings
+$string['settings'] = 'Settings';
+$string['allowstudentadd'] = 'Allow students to add items';
+$string['allowstudentadd_help'] = 'If enabled, students can add their own items to the checklist.';
+$string['allowstudentsubmit'] = 'Allow student submissions';
+$string['allowstudentsubmit_help'] = 'If enabled, students can submit their checklist for assessment.';
+$string['enableprinting'] = 'Enable printing';
+$string['enableprinting_help'] = 'If enabled, users can print the checklist.';
 
 // Status messages
 $string['itemadded'] = 'Item added successfully';
@@ -126,3 +137,9 @@ $string['completionchart'] = 'Completion chart';
 $string['statusdistribution'] = 'Status distribution';
 $string['progresschart'] = 'Progress chart';
 $string['activitychart'] = 'Activity chart';
+
+// Additional strings for proper functionality
+$string['noobservationchecklists'] = 'No observation checklists found in this course.';
+$string['itemcount'] = 'Item count';
+$string['totalattempts'] = 'Total attempts';
+$string['assessor'] = 'Assessor';

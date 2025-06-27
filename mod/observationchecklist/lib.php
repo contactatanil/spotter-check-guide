@@ -1,4 +1,3 @@
-
 <?php
 // This file is part of Moodle - http://moodle.org/
 //
@@ -69,29 +68,29 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->timecreated = time();
     $observationchecklist->timemodified = time();
 
-    // Process the description editor content
-    if (isset($observationchecklist->description_editor)) {
-        $observationchecklist->descriptionformat = $observationchecklist->description_editor['format'];
-        $observationchecklist->description = $observationchecklist->description_editor['text'];
-        unset($observationchecklist->description_editor);
+    // Process the intro editor content
+    if (isset($observationchecklist->intro_editor)) {
+        $observationchecklist->introformat = $observationchecklist->intro_editor['format'];
+        $observationchecklist->intro = $observationchecklist->intro_editor['text'];
+        unset($observationchecklist->intro_editor);
     }
 
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
 
-    // Process files in description
-    if (!empty($observationchecklist->description) && !empty($observationchecklist->coursemodule)) {
+    // Process files in intro
+    if (!empty($observationchecklist->intro) && !empty($observationchecklist->coursemodule)) {
         $cmid = $observationchecklist->coursemodule;
         $context = context_module::instance($cmid);
         
-        $draftitemid = file_get_submitted_draft_itemid('description_editor');
-        $observationchecklist->description = file_save_draft_area_files(
+        $draftitemid = file_get_submitted_draft_itemid('intro_editor');
+        $observationchecklist->intro = file_save_draft_area_files(
             $draftitemid,
             $context->id,
             'mod_observationchecklist',
-            'description',
+            'intro',
             0,
             array('subdirs' => true),
-            $observationchecklist->description
+            $observationchecklist->intro
         );
         $DB->update_record('observationchecklist', $observationchecklist);
     }
@@ -112,27 +111,27 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     $observationchecklist->timemodified = time();
     $observationchecklist->id = $observationchecklist->instance;
 
-    // Process the description editor content
-    if (isset($observationchecklist->description_editor)) {
-        $observationchecklist->descriptionformat = $observationchecklist->description_editor['format'];
-        $observationchecklist->description = $observationchecklist->description_editor['text'];
-        unset($observationchecklist->description_editor);
+    // Process the intro editor content
+    if (isset($observationchecklist->intro_editor)) {
+        $observationchecklist->introformat = $observationchecklist->intro_editor['format'];
+        $observationchecklist->intro = $observationchecklist->intro_editor['text'];
+        unset($observationchecklist->intro_editor);
     }
 
-    // Process files in description
-    if (!empty($observationchecklist->description) && !empty($observationchecklist->coursemodule)) {
+    // Process files in intro
+    if (!empty($observationchecklist->intro) && !empty($observationchecklist->coursemodule)) {
         $cmid = $observationchecklist->coursemodule;
         $context = context_module::instance($cmid);
         
-        $draftitemid = file_get_submitted_draft_itemid('description_editor');
-        $observationchecklist->description = file_save_draft_area_files(
+        $draftitemid = file_get_submitted_draft_itemid('intro_editor');
+        $observationchecklist->intro = file_save_draft_area_files(
             $draftitemid,
             $context->id,
             'mod_observationchecklist',
-            'description',
+            'intro',
             0,
             array('subdirs' => true),
-            $observationchecklist->description
+            $observationchecklist->intro
         );
     }
 

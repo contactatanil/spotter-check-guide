@@ -18,9 +18,6 @@ defined('MOODLE_INTERNAL') || die();
 function xmldb_observationchecklist_install() {
     global $DB;
     
-    // Set default capabilities if needed.
-    $context = context_system::instance();
-    
     // Any post-installation setup can go here.
     
     return true;

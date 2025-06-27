@@ -1,4 +1,3 @@
-
 <?php
 // This file is part of Moodle - http://moodle.org/
 
@@ -7,7 +6,7 @@ require_once(__DIR__.'/lib.php');
 require_once(__DIR__.'/locallib.php');
 
 $id = optional_param('id', 0, PARAM_INT); // Course_module ID
-$n  = optional_param('n', 0, PARAM_INT);  // ... observationchecklist instance ID
+$n  = optional_param('n', 0, PARAM_INT);  // observationchecklist instance ID
 $action = optional_param('action', '', PARAM_ALPHA);
 
 if ($id) {
@@ -25,7 +24,7 @@ if ($id) {
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 
-// Trigger course_module_viewed event using the new event class
+// Trigger course_module_viewed event
 $event = \mod_observationchecklist\event\course_module_viewed::create_from_course_module($cm, $context);
 $event->add_record_snapshot('course', $course);
 $event->add_record_snapshot('observationchecklist', $observationchecklist);
@@ -36,9 +35,6 @@ $PAGE->set_url('/mod/observationchecklist/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($observationchecklist->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
-
-// Add CSS for better styling
-$PAGE->requires->css('/mod/observationchecklist/styles.css');
 
 // Handle form actions
 if ($action && confirm_sesskey()) {
@@ -80,8 +76,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading($observationchecklist->name);
 
 // Show description if available
-if (trim(strip_tags($observationchecklist->description))) {
-    echo $OUTPUT->box(format_text($observationchecklist->description, $observationchecklist->descriptionformat), 
+if (trim(strip_tags($observationchecklist->intro))) {
+    echo $OUTPUT->box(format_text($observationchecklist->intro, $observationchecklist->introformat), 
                      'generalbox mod_introbox', 'observationchecklistintro');
 }
 
