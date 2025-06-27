@@ -13,9 +13,14 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use context_module;
+use required_capability_exception;
 
 /**
- * External API for deleting checklist items
+ * External API for deleting checklist items.
+ *
+ * @package    mod_observationchecklist
+ * @copyright  2024 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class delete_item extends external_api {
 
@@ -25,56 +30,38 @@ class delete_item extends external_api {
      */
     public static function execute_parameters() {
         return new external_function_parameters([
-            'cmid' => new external_value(PARAM_INT, 'Course module ID'),
-            'itemid' => new external_value(PARAM_INT, 'Item ID to delete')
+            'itemid' => new external_value(PARAM_INT, 'Item ID'),
         ]);
     }
 
     /**
      * Delete a checklist item
-     * @param int $cmid Course module ID
-     * @param int $itemid Item ID
+     * @param int $itemid
      * @return array
      */
-    public static function execute($cmid, $itemid) {
+    public static function execute($itemid) {
         global $DB;
 
         $params = self::validate_parameters(self::execute_parameters(), [
-            'cmid' => $cmid,
-            'itemid' => $itemid
+            'itemid' => $itemid,
         ]);
 
-        // Get course module and context
-        $cm = get_coursemodule_from_id('observationchecklist', $params['cmid'], 0, false, MUST_EXIST);
+        // Get item and verify permissions.
+        $item = $DB->get_record('observationchecklist_items', ['id' => $params['itemid']], '*', MUST_EXIST);
+        $checklist = $DB->get_record('observationchecklist', ['id' => $item->checklistid], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('observationchecklist', $checklist->id, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
-        
-        // Check capabilities
+
+        // Check capabilities.
         require_capability('mod/observationchecklist:edit', $context);
 
-        try {
-            // Get item to verify it belongs to this checklist
-            $item = $DB->get_record('observationchecklist_items', [
-                'id' => $params['itemid'],
-                'checklistid' => $cm->instance
-            ], '*', MUST_EXIST);
+        // Delete the item.
+        require_once(__DIR__ . '/../../locallib.php');
+        $success = observationchecklist_delete_item($params['itemid']);
 
-            // Delete related user progress
-            $DB->delete_records('observationchecklist_user_items', ['itemid' => $params['itemid']]);
-            
-            // Delete the item
-            $DB->delete_records('observationchecklist_items', ['id' => $params['itemid']]);
-
-            return [
-                'success' => true,
-                'message' => get_string('itemdeleted', 'mod_observationchecklist')
-            ];
-
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => $e->getMessage()
-            ];
-        }
+        return [
+            'success' => $success,
+        ];
     }
 
     /**
@@ -84,7 +71,6 @@ class delete_item extends external_api {
     public static function execute_returns() {
         return new external_single_structure([
             'success' => new external_value(PARAM_BOOL, 'Success status'),
-            'message' => new external_value(PARAM_TEXT, 'Response message')
         ]);
     }
 }

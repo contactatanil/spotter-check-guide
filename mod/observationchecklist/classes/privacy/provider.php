@@ -10,6 +10,8 @@ use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
 use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\contextlist;
+use core_privacy\local\request\deletion_criteria;
+use core_privacy\local\request\helper;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
@@ -21,29 +23,43 @@ use core_privacy\local\request\writer;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
-    \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
-    \core_privacy\local\request\core_userlist_provider {
+        \core_privacy\local\metadata\provider,
+        \core_privacy\local\request\plugin\provider,
+        \core_privacy\local\request\core_userlist_provider {
 
     /**
      * Return the fields which contain personal data.
      *
-     * @param collection $collection a reference to the collection to use to store the metadata.
+     * @param collection $items a reference to the collection to use to store the metadata.
      * @return collection the updated collection of metadata items.
      */
-    public static function get_metadata(collection $collection): collection {
-        $collection->add_database_table(
+    public static function get_metadata(collection $items): collection {
+        $items->add_database_table(
+            'observationchecklist_items',
+            [
+                'userid' => 'privacy:metadata:observationchecklist_items:userid',
+                'itemtext' => 'privacy:metadata:observationchecklist_items:itemtext',
+                'timecreated' => 'privacy:metadata:observationchecklist_items:timecreated',
+                'timemodified' => 'privacy:metadata:observationchecklist_items:timemodified',
+            ],
+            'privacy:metadata:observationchecklist_items'
+        );
+
+        $items->add_database_table(
             'observationchecklist_user_items',
             [
                 'userid' => 'privacy:metadata:observationchecklist_user_items:userid',
                 'status' => 'privacy:metadata:observationchecklist_user_items:status',
                 'assessornotes' => 'privacy:metadata:observationchecklist_user_items:assessornotes',
+                'assessorid' => 'privacy:metadata:observationchecklist_user_items:assessorid',
                 'dateassessed' => 'privacy:metadata:observationchecklist_user_items:dateassessed',
+                'timecreated' => 'privacy:metadata:observationchecklist_user_items:timecreated',
+                'timemodified' => 'privacy:metadata:observationchecklist_user_items:timemodified',
             ],
             'privacy:metadata:observationchecklist_user_items'
         );
 
-        return $collection;
+        return $items;
     }
 
     /**
@@ -55,17 +71,37 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
 
+        // Contexts where user has created items.
         $sql = "SELECT c.id
                   FROM {context} c
             INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
             INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
-            INNER JOIN {observationchecklist_user_items} oui ON oui.checklistid = cm.instance
-                 WHERE oui.userid = :userid";
+            INNER JOIN {observationchecklist} oc ON oc.id = cm.instance
+            INNER JOIN {observationchecklist_items} oci ON oci.checklistid = oc.id
+                 WHERE oci.userid = :userid";
 
         $params = [
             'modname' => 'observationchecklist',
             'contextlevel' => CONTEXT_MODULE,
             'userid' => $userid,
+        ];
+
+        $contextlist->add_from_sql($sql, $params);
+
+        // Contexts where user has been assessed.
+        $sql = "SELECT c.id
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+            INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+            INNER JOIN {observationchecklist} oc ON oc.id = cm.instance
+            INNER JOIN {observationchecklist_user_items} ocui ON ocui.checklistid = oc.id
+                 WHERE ocui.userid = :userid OR ocui.assessorid = :assessorid";
+
+        $params = [
+            'modname' => 'observationchecklist',
+            'contextlevel' => CONTEXT_MODULE,
+            'userid' => $userid,
+            'assessorid' => $userid,
         ];
 
         $contextlist->add_from_sql($sql, $params);
@@ -85,20 +121,43 @@ class provider implements
             return;
         }
 
+        // Fetch all users who have created items.
+        $sql = "SELECT oci.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {observationchecklist} oc ON oc.id = cm.instance
+                  JOIN {observationchecklist_items} oci ON oci.checklistid = oc.id
+                 WHERE cm.id = :cmid";
+
         $params = [
             'cmid' => $context->instanceid,
+            'modname' => 'observationchecklist',
         ];
 
-        $sql = "SELECT oui.userid
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        // Fetch all users who have been assessed or are assessors.
+        $sql = "SELECT ocui.userid
                   FROM {course_modules} cm
-                  JOIN {observationchecklist_user_items} oui ON oui.checklistid = cm.instance
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {observationchecklist} oc ON oc.id = cm.instance
+                  JOIN {observationchecklist_user_items} ocui ON ocui.checklistid = oc.id
                  WHERE cm.id = :cmid";
+
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT ocui.assessorid as userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {observationchecklist} oc ON oc.id = cm.instance
+                  JOIN {observationchecklist_user_items} ocui ON ocui.checklistid = oc.id
+                 WHERE cm.id = :cmid AND ocui.assessorid IS NOT NULL";
 
         $userlist->add_from_sql('userid', $sql, $params);
     }
 
     /**
-     * Export personal data for the given approved_contextlist.
+     * Export personal data for the given approved_contextlist. User and context information is contained within the contextlist.
      *
      * @param approved_contextlist $contextlist a list of contexts approved for export.
      */
@@ -111,44 +170,61 @@ class provider implements
 
         $user = $contextlist->get_user();
 
-        foreach ($contextlist->get_contexts() as $context) {
-            if ($context->contextlevel != CONTEXT_MODULE) {
-                continue;
-            }
+        list($contextsql, $contextparams) = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
 
-            $cm = get_coursemodule_from_id('observationchecklist', $context->instanceid);
-            if (!$cm) {
-                continue;
-            }
+        // Export items created by the user.
+        $sql = "SELECT oci.*, oc.name as checklistname
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {observationchecklist} oc ON oc.id = cm.instance
+            INNER JOIN {observationchecklist_items} oci ON oci.checklistid = oc.id
+                 WHERE c.id {$contextsql} AND oci.userid = :userid
+              ORDER BY c.id";
 
-            $sql = "SELECT oui.*, oci.itemtext
-                      FROM {observationchecklist_user_items} oui
-                      JOIN {observationchecklist_items} oci ON oci.id = oui.itemid
-                     WHERE oui.checklistid = :checklistid AND oui.userid = :userid";
+        $params = $contextparams;
+        $params['userid'] = $user->id;
 
-            $params = [
-                'checklistid' => $cm->instance,
-                'userid' => $user->id,
+        $items = $DB->get_recordset_sql($sql, $params);
+        foreach ($items as $item) {
+            $context = \context::instance_by_id($item->contextid);
+            $data = [
+                'itemtext' => $item->itemtext,
+                'category' => $item->category,
+                'timecreated' => transform::datetime($item->timecreated),
+                'timemodified' => transform::datetime($item->timemodified),
             ];
-
-            $records = $DB->get_records_sql($sql, $params);
-
-            if ($records) {
-                $data = [];
-                foreach ($records as $record) {
-                    $data[] = [
-                        'item' => $record->itemtext,
-                        'status' => $record->status,
-                        'notes' => $record->assessornotes,
-                        'date_assessed' => $record->dateassessed ? transform::datetime($record->dateassessed) : null,
-                    ];
-                }
-
-                writer::with_context($context)->export_data([], (object) [
-                    'assessments' => $data,
-                ]);
-            }
+            writer::with_context($context)->export_data([get_string('privacy:path:items', 'mod_observationchecklist')], (object) $data);
         }
+        $items->close();
+
+        // Export assessments.
+        $sql = "SELECT ocui.*, oc.name as checklistname, oci.itemtext
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {observationchecklist} oc ON oc.id = cm.instance
+            INNER JOIN {observationchecklist_user_items} ocui ON ocui.checklistid = oc.id
+            INNER JOIN {observationchecklist_items} oci ON oci.id = ocui.itemid
+                 WHERE c.id {$contextsql} AND (ocui.userid = :userid OR ocui.assessorid = :assessorid)
+              ORDER BY c.id";
+
+        $params = $contextparams;
+        $params['userid'] = $user->id;
+        $params['assessorid'] = $user->id;
+
+        $assessments = $DB->get_recordset_sql($sql, $params);
+        foreach ($assessments as $assessment) {
+            $context = \context::instance_by_id($assessment->contextid);
+            $data = [
+                'itemtext' => $assessment->itemtext,
+                'status' => $assessment->status,
+                'assessornotes' => $assessment->assessornotes,
+                'dateassessed' => transform::datetime($assessment->dateassessed),
+                'timecreated' => transform::datetime($assessment->timecreated),
+                'timemodified' => transform::datetime($assessment->timemodified),
+            ];
+            writer::with_context($context)->export_data([get_string('privacy:path:assessments', 'mod_observationchecklist')], (object) $data);
+        }
+        $assessments->close();
     }
 
     /**
@@ -163,12 +239,10 @@ class provider implements
             return;
         }
 
-        $cm = get_coursemodule_from_id('observationchecklist', $context->instanceid);
-        if (!$cm) {
-            return;
+        if ($cm = get_coursemodule_from_id('observationchecklist', $context->instanceid)) {
+            $DB->delete_records('observationchecklist_items', ['checklistid' => $cm->instance]);
+            $DB->delete_records('observationchecklist_user_items', ['checklistid' => $cm->instance]);
         }
-
-        $DB->delete_records('observationchecklist_user_items', ['checklistid' => $cm->instance]);
     }
 
     /**
@@ -184,21 +258,17 @@ class provider implements
         }
 
         $userid = $contextlist->get_user()->id;
-
         foreach ($contextlist->get_contexts() as $context) {
-            if ($context->contextlevel != CONTEXT_MODULE) {
+            if (!$context instanceof \context_module) {
                 continue;
             }
-
-            $cm = get_coursemodule_from_id('observationchecklist', $context->instanceid);
-            if (!$cm) {
-                continue;
+            if ($cm = get_coursemodule_from_id('observationchecklist', $context->instanceid)) {
+                $DB->delete_records('observationchecklist_items', ['checklistid' => $cm->instance, 'userid' => $userid]);
+                $DB->delete_records('observationchecklist_user_items', ['checklistid' => $cm->instance, 'userid' => $userid]);
+                
+                // Also delete where user is the assessor.
+                $DB->delete_records('observationchecklist_user_items', ['checklistid' => $cm->instance, 'assessorid' => $userid]);
             }
-
-            $DB->delete_records('observationchecklist_user_items', [
-                'checklistid' => $cm->instance,
-                'userid' => $userid,
-            ]);
         }
     }
 
@@ -222,11 +292,16 @@ class provider implements
         }
 
         $userids = $userlist->get_userids();
-        if (!empty($userids)) {
-            list($usersql, $userparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
-            $select = "checklistid = :checklistid AND userid {$usersql}";
-            $params = ['checklistid' => $cm->instance] + $userparams;
-            $DB->delete_records_select('observationchecklist_user_items', $select, $params);
+        if (empty($userids)) {
+            return;
         }
+
+        list($usersql, $userparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+
+        $params = array_merge(['checklistid' => $cm->instance], $userparams);
+
+        $DB->delete_records_select('observationchecklist_items', "checklistid = :checklistid AND userid {$usersql}", $params);
+        $DB->delete_records_select('observationchecklist_user_items', "checklistid = :checklistid AND userid {$usersql}", $params);
+        $DB->delete_records_select('observationchecklist_user_items', "checklistid = :checklistid AND assessorid {$usersql}", $params);
     }
 }

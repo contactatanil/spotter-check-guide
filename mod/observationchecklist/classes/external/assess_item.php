@@ -1,11 +1,6 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
 
 namespace mod_observationchecklist\external;
 
@@ -18,14 +13,14 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use context_module;
-use invalid_parameter_exception;
+use required_capability_exception;
 
 /**
- * External API for assessing checklist items
+ * External API for assessing checklist items.
  *
- * @package     mod_observationchecklist
- * @copyright   2024 Your Name <your@email.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    mod_observationchecklist
+ * @copyright  2024 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assess_item extends external_api {
 
@@ -35,137 +30,47 @@ class assess_item extends external_api {
      */
     public static function execute_parameters() {
         return new external_function_parameters([
-            'cmid' => new external_value(PARAM_INT, 'Course module ID'),
             'itemid' => new external_value(PARAM_INT, 'Item ID'),
-            'userid' => new external_value(PARAM_INT, 'User ID being assessed'),
-            'status' => new external_value(PARAM_ALPHA, 'Assessment status'),
-            'notes' => new external_value(PARAM_TEXT, 'Assessment notes', VALUE_OPTIONAL, '')
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+            'status' => new external_value(PARAM_TEXT, 'Assessment status'),
+            'notes' => new external_value(PARAM_TEXT, 'Assessment notes', VALUE_DEFAULT, ''),
         ]);
     }
 
     /**
-     * Assess a checklist item for a user
-     * @param int $cmid Course module ID
-     * @param int $itemid Item ID
-     * @param int $userid User ID
-     * @param string $status Assessment status
-     * @param string $notes Assessment notes
+     * Assess a checklist item
+     * @param int $itemid
+     * @param int $userid
+     * @param string $status
+     * @param string $notes
      * @return array
      */
-    public static function execute($cmid, $itemid, $userid, $status, $notes = '') {
+    public static function execute($itemid, $userid, $status, $notes = '') {
         global $DB, $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
-            'cmid' => $cmid,
             'itemid' => $itemid,
             'userid' => $userid,
             'status' => $status,
-            'notes' => $notes
+            'notes' => $notes,
         ]);
 
-        // Get course module and context.
-        $cm = get_coursemodule_from_id('observationchecklist', $params['cmid'], 0, false, MUST_EXIST);
+        // Get item and verify permissions.
+        $item = $DB->get_record('observationchecklist_items', ['id' => $params['itemid']], '*', MUST_EXIST);
+        $checklist = $DB->get_record('observationchecklist', ['id' => $item->checklistid], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('observationchecklist', $checklist->id, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
-        
-        // Validate context and check capabilities.
-        self::validate_context($context);
+
+        // Check capabilities.
         require_capability('mod/observationchecklist:assess', $context);
 
-        // Enhanced validation
-        // Validate notes length
-        if (strlen($params['notes']) > 1000) {
-            throw new invalid_parameter_exception('Notes too long (maximum 1000 characters)');
-        }
+        // Assess the item.
+        require_once(__DIR__ . '/../../locallib.php');
+        $success = observationchecklist_assess_item($params['itemid'], $params['userid'], $params['status'], $params['notes'], $USER->id);
 
-        // Validate that the item belongs to this checklist and exists
-        $item = $DB->get_record('observationchecklist_items', [
-            'id' => $params['itemid'],
-            'checklistid' => $cm->instance
-        ], '*', MUST_EXIST);
-        
-        if (!$item) {
-            throw new invalid_parameter_exception('Invalid item ID for this checklist');
-        }
-
-        // Validate that the user is enrolled in the course.
-        $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
-        $coursecontext = \context_course::instance($course->id);
-        if (!is_enrolled($coursecontext, $params['userid'])) {
-            throw new invalid_parameter_exception('User is not enrolled in this course');
-        }
-
-        // Enhanced status validation
-        $valid_statuses = ['satisfactory', 'not_satisfactory', 'in_progress', 'not_started'];
-        if (!in_array($params['status'], $valid_statuses)) {
-            throw new invalid_parameter_exception('Invalid status provided. Must be one of: ' . implode(', ', $valid_statuses));
-        }
-
-        // Validate userid exists
-        $user = $DB->get_record('user', ['id' => $params['userid']], '*', MUST_EXIST);
-        if (!$user) {
-            throw new invalid_parameter_exception('Invalid user ID');
-        }
-
-        // Start database transaction for data consistency
-        $transaction = $DB->start_delegated_transaction();
-        
-        try {
-            // Check if assessment already exists.
-            $existing = $DB->get_record('observationchecklist_user_items', [
-                'checklistid' => $cm->instance,
-                'itemid' => $params['itemid'],
-                'userid' => $params['userid']
-            ]);
-
-            $assessment = new \stdClass();
-            $assessment->checklistid = $cm->instance;
-            $assessment->itemid = $params['itemid'];
-            $assessment->userid = $params['userid'];
-            $assessment->status = $params['status'];
-            $assessment->assessornotes = clean_param($params['notes'], PARAM_TEXT);
-            $assessment->assessorid = $USER->id;
-            $assessment->dateassessed = time();
-            $assessment->timemodified = time();
-
-            if ($existing) {
-                // Update existing assessment.
-                $assessment->id = $existing->id;
-                $assessment->timecreated = $existing->timecreated;
-                $DB->update_record('observationchecklist_user_items', $assessment);
-            } else {
-                // Create new assessment.
-                $assessment->timecreated = time();
-                $DB->insert_record('observationchecklist_user_items', $assessment);
-            }
-
-            // Commit the transaction
-            $transaction->allow_commit();
-
-            // Trigger event.
-            $event = \mod_observationchecklist\event\assessment_made::create([
-                'objectid' => $params['itemid'],
-                'context' => $context,
-                'relateduserid' => $params['userid'],
-                'other' => [
-                    'status' => $params['status'],
-                    'notes' => $params['notes']
-                ]
-            ]);
-            $event->trigger();
-
-            return [
-                'success' => true,
-                'message' => get_string('assessmentadded', 'mod_observationchecklist')
-            ];
-
-        } catch (\Exception $e) {
-            // Rollback transaction on error
-            $transaction->rollback($e);
-            return [
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
-            ];
-        }
+        return [
+            'success' => $success,
+        ];
     }
 
     /**
@@ -175,7 +80,6 @@ class assess_item extends external_api {
     public static function execute_returns() {
         return new external_single_structure([
             'success' => new external_value(PARAM_BOOL, 'Success status'),
-            'message' => new external_value(PARAM_TEXT, 'Response message')
         ]);
     }
 }
