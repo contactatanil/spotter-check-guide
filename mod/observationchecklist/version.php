@@ -26,8 +26,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_observationchecklist';
-$plugin->version = 2024122701; // Updated version number
-$plugin->release = '1.0.1';
+$plugin->version = 2024122702; // Updated version number for database fixes
+$plugin->release = '1.0.2';
 $plugin->requires = 2022112800; // Moodle 4.1 minimum
 $plugin->maturity = MATURITY_STABLE;
 $plugin->supported = [401, 405]; // Moodle 4.1-4.5 supported
