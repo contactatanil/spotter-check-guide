@@ -12,9 +12,6 @@
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="allowstudentadd" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-        <FIELD NAME="allowstudentsubmit" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-        <FIELD NAME="enableprinting" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
@@ -40,9 +37,6 @@
         <KEY NAME="checklistid" TYPE="foreign" FIELDS="checklistid" REFTABLE="observationchecklist" REFFIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
-      <INDEXES>
-        <INDEX NAME="checklistid_position" UNIQUE="false" FIELDS="checklistid, position"/>
-      </INDEXES>
     </TABLE>
     
     <TABLE NAME="observationchecklist_user_items" COMMENT="Stores user progress and assessments for checklist items">
@@ -65,10 +59,6 @@
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
         <KEY NAME="assessorid" TYPE="foreign" FIELDS="assessorid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
-      <INDEXES>
-        <INDEX NAME="itemid_userid" UNIQUE="true" FIELDS="itemid, userid"/>
-        <INDEX NAME="checklistid_userid" UNIQUE="false" FIELDS="checklistid, userid"/>
-      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>

@@ -1,18 +1,6 @@
+
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Library of interface functions and constants for module observationchecklist
@@ -36,20 +24,16 @@ function observationchecklist_supports($feature) {
             return true;
         case FEATURE_SHOW_DESCRIPTION:
             return true;
-        case FEATURE_BACKUP_MOODLE2:
-            return true;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
             return true;
         case FEATURE_GRADE_HAS_GRADE:
             return false;
         case FEATURE_GRADE_OUTCOMES:
             return false;
+        case FEATURE_BACKUP_MOODLE2:
+            return true;
         case FEATURE_MOD_PURPOSE:
             return MOD_PURPOSE_ASSESSMENT;
-        case FEATURE_GROUPS:
-            return true;
-        case FEATURE_GROUPINGS:
-            return true;
         default:
             return null;
     }
@@ -57,10 +41,6 @@ function observationchecklist_supports($feature) {
 
 /**
  * Saves a new instance of the observationchecklist into the database
- *
- * @param stdClass $observationchecklist Submitted data from the form
- * @param mod_observationchecklist_mod_form $mform The form instance
- * @return int The id of the newly inserted observationchecklist record
  */
 function observationchecklist_add_instance(stdClass $observationchecklist, mod_observationchecklist_mod_form $mform = null) {
     global $DB;
@@ -68,42 +48,19 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->timecreated = time();
     $observationchecklist->timemodified = time();
 
-    // Process the intro editor content
-    if (isset($observationchecklist->intro_editor)) {
-        $observationchecklist->introformat = $observationchecklist->intro_editor['format'];
-        $observationchecklist->intro = $observationchecklist->intro_editor['text'];
-        unset($observationchecklist->intro_editor);
+    if (isset($observationchecklist->introeditor)) {
+        $observationchecklist->introformat = $observationchecklist->introeditor['format'];
+        $observationchecklist->intro = $observationchecklist->introeditor['text'];
+        unset($observationchecklist->introeditor);
     }
 
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
-
-    // Process files in intro
-    if (!empty($observationchecklist->intro) && !empty($observationchecklist->coursemodule)) {
-        $cmid = $observationchecklist->coursemodule;
-        $context = context_module::instance($cmid);
-        
-        $draftitemid = file_get_submitted_draft_itemid('intro_editor');
-        $observationchecklist->intro = file_save_draft_area_files(
-            $draftitemid,
-            $context->id,
-            'mod_observationchecklist',
-            'intro',
-            0,
-            array('subdirs' => true),
-            $observationchecklist->intro
-        );
-        $DB->update_record('observationchecklist', $observationchecklist);
-    }
 
     return $observationchecklist->id;
 }
 
 /**
  * Updates an instance of the observationchecklist in the database
- *
- * @param stdClass $observationchecklist An object from the form
- * @param mod_observationchecklist_mod_form $mform The form instance
- * @return boolean Success/Fail
  */
 function observationchecklist_update_instance(stdClass $observationchecklist, mod_observationchecklist_mod_form $mform = null) {
     global $DB;
@@ -111,28 +68,10 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     $observationchecklist->timemodified = time();
     $observationchecklist->id = $observationchecklist->instance;
 
-    // Process the intro editor content
-    if (isset($observationchecklist->intro_editor)) {
-        $observationchecklist->introformat = $observationchecklist->intro_editor['format'];
-        $observationchecklist->intro = $observationchecklist->intro_editor['text'];
-        unset($observationchecklist->intro_editor);
-    }
-
-    // Process files in intro
-    if (!empty($observationchecklist->intro) && !empty($observationchecklist->coursemodule)) {
-        $cmid = $observationchecklist->coursemodule;
-        $context = context_module::instance($cmid);
-        
-        $draftitemid = file_get_submitted_draft_itemid('intro_editor');
-        $observationchecklist->intro = file_save_draft_area_files(
-            $draftitemid,
-            $context->id,
-            'mod_observationchecklist',
-            'intro',
-            0,
-            array('subdirs' => true),
-            $observationchecklist->intro
-        );
+    if (isset($observationchecklist->introeditor)) {
+        $observationchecklist->introformat = $observationchecklist->introeditor['format'];
+        $observationchecklist->intro = $observationchecklist->introeditor['text'];
+        unset($observationchecklist->introeditor);
     }
 
     return $DB->update_record('observationchecklist', $observationchecklist);
@@ -140,95 +79,17 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
 
 /**
  * Removes an instance of the observationchecklist from the database
- *
- * @param int $id Id of the module instance
- * @return boolean Success/Failure
  */
 function observationchecklist_delete_instance($id) {
     global $DB;
 
-    if (! $observationchecklist = $DB->get_record('observationchecklist', array('id' => $id))) {
+    if (!$observationchecklist = $DB->get_record('observationchecklist', array('id' => $id))) {
         return false;
     }
 
-    // Delete any dependent records
     $DB->delete_records('observationchecklist_items', array('checklistid' => $id));
     $DB->delete_records('observationchecklist_user_items', array('checklistid' => $id));
-
-    // Delete the main record
     $DB->delete_records('observationchecklist', array('id' => $id));
 
     return true;
-}
-
-/**
- * Returns the lists of all browsable file areas within the given module context
- *
- * @param stdClass $course
- * @param stdClass $cm
- * @param stdClass $context
- * @return array of [(string)filearea] => (string)description
- */
-function observationchecklist_get_file_areas($course, $cm, $context) {
-    return array(
-        'description' => get_string('description', 'mod_observationchecklist'),
-    );
-}
-
-/**
- * Serves the files from the observationchecklist file areas
- *
- * @param stdClass $course the course object
- * @param stdClass $cm the course module object
- * @param stdClass $context the observationchecklist's context
- * @param string $filearea the name of the file area
- * @param array $args extra arguments (itemid, path)
- * @param bool $forcedownload whether or not force download
- * @param array $options additional options affecting the file serving
- */
-function observationchecklist_pluginfile($course, $cm, $context, $filearea, array $args, $forcedownload, array $options = array()) {
-    if ($context->contextlevel != CONTEXT_MODULE) {
-        send_file_not_found();
-    }
-
-    require_login($course, true, $cm);
-
-    if ($filearea !== 'description') {
-        send_file_not_found();
-    }
-
-    $relativepath = implode('/', $args);
-    $fullpath = rtrim("/$context->id/mod_observationchecklist/$filearea/$relativepath", '/');
-
-    $fs = get_file_storage();
-    if (!$file = $fs->get_file_by_hash(sha1($fullpath)) or $file->is_directory()) {
-        send_file_not_found();
-    }
-
-    send_stored_file($file, 86400, 0, $forcedownload, $options);
-}
-
-/**
- * Extend the settings navigation with the observationchecklist settings
- *
- * @param settings_navigation $settingsnav
- * @param navigation_node $observationchecklistnode
- */
-function observationchecklist_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $observationchecklistnode=null) {
-    // Add any additional navigation items here if needed
-}
-
-/**
- * Callback to fetch the activity fresh results
- *
- * @param int $observationchecklistid
- * @return string
- */
-function observationchecklist_get_completion_state($course, $cm, $userid, $type) {
-    global $DB;
-
-    $observationchecklist = $DB->get_record('observationchecklist', array('id' => $cm->instance), '*', MUST_EXIST);
-    
-    // For now, just return that it's complete when viewed
-    return $type;
 }

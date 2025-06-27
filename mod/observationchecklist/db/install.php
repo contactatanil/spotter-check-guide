@@ -16,9 +16,5 @@ defined('MOODLE_INTERNAL') || die();
  * Function to be run after the plugin installation is complete.
  */
 function xmldb_observationchecklist_install() {
-    global $DB;
-    
-    // Any post-installation setup can go here.
-    
     return true;
 }
