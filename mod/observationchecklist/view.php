@@ -1,19 +1,6 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-/**
- * Prints a particular instance of observationchecklist
- *
- * @package    mod_observationchecklist
- * @copyright  2024 Your Name
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 
 require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
@@ -38,12 +25,8 @@ if ($id) {
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 
-// Trigger course_module_viewed event
-$event = \mod_observationchecklist\event\course_module_viewed::create(array(
-    'objectid' => $observationchecklist->id,
-    'context' => $context
-));
-$event->add_record_snapshot('course_modules', $cm);
+// Trigger course_module_viewed event using the new event class
+$event = \mod_observationchecklist\event\course_module_viewed::create_from_course_module($cm, $context);
 $event->add_record_snapshot('course', $course);
 $event->add_record_snapshot('observationchecklist', $observationchecklist);
 $event->trigger();
@@ -54,6 +37,9 @@ $PAGE->set_title(format_string($observationchecklist->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
+// Add CSS for better styling
+$PAGE->requires->css('/mod/observationchecklist/styles.css');
+
 // Handle form actions
 if ($action && confirm_sesskey()) {
     switch ($action) {
@@ -63,23 +49,13 @@ if ($action && confirm_sesskey()) {
                 $category = optional_param('category', 'General', PARAM_TEXT);
                 
                 if (!empty($itemtext)) {
-                    $item = new stdClass();
-                    $item->checklistid = $observationchecklist->id;
-                    $item->itemtext = $itemtext;
-                    $item->category = $category;
-                    $item->userid = $USER->id;
-                    $item->position = 0;
-                    $item->sortorder = 0;
-                    $item->timecreated = time();
-                    $item->timemodified = time();
-                    
-                    $DB->insert_record('observationchecklist_items', $item);
+                    $itemid = observationchecklist_add_item($observationchecklist->id, $itemtext, $category, $USER->id);
                     
                     // Trigger item added event
                     $event = \mod_observationchecklist\event\item_added::create(array(
-                        'objectid' => $item->id ?? 0,
+                        'objectid' => $itemid,
                         'context' => $context,
-                        'other' => array('checklistid' => $observationchecklist->id)
+                        'other' => array('checklistid' => $observationchecklist->id, 'itemtext' => $itemtext)
                     ));
                     $event->trigger();
                     
@@ -91,8 +67,7 @@ if ($action && confirm_sesskey()) {
         case 'deleteitem':
             if (has_capability('mod/observationchecklist:edit', $context)) {
                 $itemid = required_param('itemid', PARAM_INT);
-                $DB->delete_records('observationchecklist_items', array('id' => $itemid));
-                $DB->delete_records('observationchecklist_user_items', array('itemid' => $itemid));
+                observationchecklist_delete_item($itemid);
                 redirect($PAGE->url, get_string('itemdeleted', 'mod_observationchecklist'));
             }
             break;
@@ -104,29 +79,34 @@ echo $OUTPUT->header();
 
 echo $OUTPUT->heading($observationchecklist->name);
 
+// Show description if available
 if (trim(strip_tags($observationchecklist->description))) {
-    echo $OUTPUT->box(format_module_intro('observationchecklist', $observationchecklist, $cm->id), 'generalbox mod_introbox', 'observationchecklistintro');
+    echo $OUTPUT->box(format_text($observationchecklist->description, $observationchecklist->descriptionformat), 
+                     'generalbox mod_introbox', 'observationchecklistintro');
 }
 
-// Show checklist items
-$items = $DB->get_records('observationchecklist_items', array('checklistid' => $observationchecklist->id), 'id ASC');
+// Get checklist items
+$items = observationchecklist_get_items($observationchecklist->id);
 
+// Add item form for users with edit capability
 if (has_capability('mod/observationchecklist:edit', $context)) {
     echo '<div class="card mt-3">';
-    echo '<div class="card-header"><h5 class="mb-0">'.get_string('addnewitem', 'mod_observationchecklist').'</h5></div>';
+    echo '<div class="card-header">';
+    echo '<h5 class="mb-0">' . get_string('addnewitem', 'mod_observationchecklist') . '</h5>';
+    echo '</div>';
     echo '<div class="card-body">';
-    echo '<form method="post" action="'.$PAGE->url.'">';
-    echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
+    echo '<form method="post" action="' . $PAGE->url . '">';
+    echo '<input type="hidden" name="sesskey" value="' . sesskey() . '" />';
     echo '<input type="hidden" name="action" value="additem" />';
     echo '<div class="mb-3">';
-    echo '<label for="itemtext" class="form-label">'.get_string('itemtext', 'mod_observationchecklist').'</label>';
+    echo '<label for="itemtext" class="form-label">' . get_string('itemtext', 'mod_observationchecklist') . '</label>';
     echo '<textarea class="form-control" id="itemtext" name="itemtext" rows="3" required></textarea>';
     echo '</div>';
     echo '<div class="mb-3">';
-    echo '<label for="category" class="form-label">'.get_string('category', 'mod_observationchecklist').'</label>';
+    echo '<label for="category" class="form-label">' . get_string('category', 'mod_observationchecklist') . '</label>';
     echo '<input type="text" class="form-control" id="category" name="category" value="General" />';
     echo '</div>';
-    echo '<button type="submit" class="btn btn-primary">'.get_string('additem', 'mod_observationchecklist').'</button>';
+    echo '<button type="submit" class="btn btn-primary">' . get_string('additem', 'mod_observationchecklist') . '</button>';
     echo '</form>';
     echo '</div>';
     echo '</div>';
@@ -135,22 +115,25 @@ if (has_capability('mod/observationchecklist:edit', $context)) {
 // Display items
 if (!empty($items)) {
     echo '<div class="card mt-3">';
-    echo '<div class="card-header"><h5 class="mb-0">'.get_string('assessmentitems', 'mod_observationchecklist').'</h5></div>';
+    echo '<div class="card-header">';
+    echo '<h5 class="mb-0">' . get_string('assessmentitems', 'mod_observationchecklist') . '</h5>';
+    echo '</div>';
     echo '<div class="card-body">';
     echo '<div class="list-group list-group-flush">';
     
     foreach ($items as $item) {
         echo '<div class="list-group-item d-flex justify-content-between align-items-start">';
         echo '<div class="me-auto">';
-        echo '<div class="fw-bold">'.format_text($item->itemtext).'</div>';
-        echo '<small class="text-muted">'.get_string('category', 'mod_observationchecklist').': '.format_string($item->category).'</small>';
+        echo '<div class="fw-bold">' . format_text($item->itemtext) . '</div>';
+        echo '<small class="text-muted">' . get_string('category', 'mod_observationchecklist') . ': ' . 
+             format_string($item->category) . '</small>';
         echo '</div>';
         
         if (has_capability('mod/observationchecklist:edit', $context)) {
-            echo '<a href="'.$PAGE->url.'?action=deleteitem&itemid='.$item->id.'&sesskey='.sesskey().'" ';
+            echo '<a href="' . $PAGE->url . '?action=deleteitem&itemid=' . $item->id . '&sesskey=' . sesskey() . '" ';
             echo 'class="btn btn-sm btn-outline-danger" ';
-            echo 'onclick="return confirm(\''.get_string('confirmdeleteitem', 'mod_observationchecklist').'\')">';
-            echo '<i class="fa fa-trash"></i> '.get_string('delete', 'mod_observationchecklist');
+            echo 'onclick="return confirm(\'' . get_string('confirmdeleteitem', 'mod_observationchecklist') . '\')">';
+            echo '<i class="fa fa-trash"></i> ' . get_string('delete', 'mod_observationchecklist');
             echo '</a>';
         }
         echo '</div>';
@@ -171,18 +154,24 @@ if (has_capability('mod/observationchecklist:assess', $context)) {
     $students = get_enrolled_users($context, 'mod/observationchecklist:submit');
     if (!empty($students)) {
         echo '<div class="card mt-3">';
-        echo '<div class="card-header"><h5 class="mb-0">'.get_string('studentassessment', 'mod_observationchecklist').'</h5></div>';
+        echo '<div class="card-header">';
+        echo '<h5 class="mb-0">' . get_string('studentassessment', 'mod_observationchecklist') . '</h5>';
+        echo '</div>';
         echo '<div class="card-body">';
-        echo '<p>'.get_string('choosestudentmessage', 'mod_observationchecklist').'</p>';
+        echo '<p>' . get_string('choosestudentmessage', 'mod_observationchecklist') . '</p>';
         
-        echo '<div class="list-group">';
+        echo '<div class="row">';
         foreach ($students as $student) {
-            echo '<a href="assess.php?id='.$cm->id.'&userid='.$student->id.'" class="list-group-item list-group-item-action">';
-            echo '<div class="d-flex w-100 justify-content-between">';
-            echo '<h6 class="mb-1">'.fullname($student).'</h6>';
-            echo '<small class="text-muted">'.$student->email.'</small>';
+            echo '<div class="col-md-6 mb-3">';
+            echo '<div class="card">';
+            echo '<div class="card-body">';
+            echo '<h6 class="card-title">' . fullname($student) . '</h6>';
+            echo '<p class="card-text text-muted">' . $student->email . '</p>';
+            echo '<a href="assess.php?id=' . $cm->id . '&userid=' . $student->id . '" class="btn btn-primary btn-sm">';
+            echo get_string('assess', 'core') . '</a>';
             echo '</div>';
-            echo '</a>';
+            echo '</div>';
+            echo '</div>';
         }
         echo '</div>';
         

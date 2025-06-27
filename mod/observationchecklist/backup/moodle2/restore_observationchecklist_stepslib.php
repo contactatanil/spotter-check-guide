@@ -1,24 +1,19 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
- * Restore steps for mod_observationchecklist.
+ * Define all the restore steps that will be used by the restore_observationchecklist_activity_task
  *
- * @package     mod_observationchecklist
- * @copyright   2024 Your Name <your@email.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   mod_observationchecklist
+ * @copyright 2024 Your Name
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
 /**
- * Structure step to restore one observation checklist activity.
+ * Structure step to restore one observationchecklist activity
  */
 class restore_observationchecklist_activity_structure_step extends restore_activity_structure_step {
 
@@ -33,7 +28,7 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
             $paths[] = new restore_path_element('observationchecklist_useritem', '/activity/observationchecklist/useritems/useritem');
         }
 
-        // Return the paths wrapped into standard activity structure.
+        // Return the paths wrapped into standard activity structure
         return $this->prepare_activity_structure($paths);
     }
 
@@ -47,9 +42,9 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $data->timecreated = $this->apply_date_offset($data->timecreated);
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
-        // Insert the observation checklist record.
+        // Insert the observationchecklist record
         $newitemid = $DB->insert_record('observationchecklist', $data);
-        // Immediately after inserting "activity" record, call this.
+        // Immediately after inserting "activity" record, call this
         $this->apply_activity_instance($newitemid);
     }
 
@@ -62,6 +57,7 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $data->checklistid = $this->get_new_parentid('observationchecklist');
         $data->userid = $this->get_mappingid('user', $data->userid);
         $data->timecreated = $this->apply_date_offset($data->timecreated);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
 
         $newitemid = $DB->insert_record('observationchecklist_items', $data);
         $this->set_mapping('observationchecklist_item', $oldid, $newitemid);
@@ -81,10 +77,13 @@ class restore_observationchecklist_activity_structure_step extends restore_activ
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
         $newitemid = $DB->insert_record('observationchecklist_user_items', $data);
+        // No need to save this mapping as far as nothing depend on it
+        // (child paths, file areas nor links decoder)
     }
 
     protected function after_execute() {
-        // Add observation checklist related files, no need to match by itemname (just internally handled context).
+        // Add observationchecklist related files, no need to match by itemname (just internally handled context)
         $this->add_related_files('mod_observationchecklist', 'intro', null);
+        $this->add_related_files('mod_observationchecklist', 'description', null);
     }
 }

@@ -12,84 +12,65 @@ $string['pluginadministration'] = 'Observation Checklist administration';
 // Capabilities
 $string['observationchecklist:addinstance'] = 'Add a new observation checklist';
 $string['observationchecklist:view'] = 'View observation checklist';
-$string['observationchecklist:edit'] = 'Edit observation checklist';
+$string['observationchecklist:edit'] = 'Edit observation checklist items';
 $string['observationchecklist:assess'] = 'Assess students';
-$string['observationchecklist:submit'] = 'Submit to checklist';
+$string['observationchecklist:submit'] = 'Submit observations';
+$string['observationchecklist:viewreports'] = 'View reports';
 
-// Form fields
+// Form elements
 $string['checklistname'] = 'Checklist name';
+$string['checklistname_help'] = 'The name of this observation checklist';
 $string['description'] = 'Description';
+$string['description_help'] = 'A description of this observation checklist';
+$string['settings'] = 'Settings';
+
+// Settings
+$string['allowstudentadd'] = 'Allow students to add items';
+$string['allowstudentadd_help'] = 'Allow students to add their own items to the checklist';
+$string['allowstudentsubmit'] = 'Allow student submission';
+$string['allowstudentsubmit_help'] = 'Allow students to submit their own progress';
+$string['enableprinting'] = 'Enable printing';
+$string['enableprinting_help'] = 'Enable printing of progress reports';
+
+// Items
+$string['addnewitem'] = 'Add new item';
+$string['additem'] = 'Add item';
 $string['itemtext'] = 'Item text';
 $string['category'] = 'Category';
-$string['additem'] = 'Add item';
-$string['deleteitem'] = 'Delete item';
-$string['edititem'] = 'Edit item';
+$string['assessmentitems'] = 'Assessment items';
+$string['itemadded'] = 'Item added successfully';
+$string['itemdeleted'] = 'Item deleted successfully';
+$string['confirmdeleteitem'] = 'Are you sure you want to delete this item?';
+$string['delete'] = 'Delete';
+$string['noitemsfound'] = 'No items found. Add some items to get started.';
+$string['noobservationchecklists'] = 'No observation checklists found in this course.';
 
 // Assessment
-$string['assess'] = 'Assess';
-$string['assessment'] = 'Assessment';
 $string['studentassessment'] = 'Student Assessment';
-$string['individualstudentassessment'] = 'Individual Student Assessment';
-$string['multistudentobservation'] = 'Multi-Student Observation';
-$string['selectstudent'] = 'Select Student';
-$string['choosestudent'] = 'Choose a student';
-$string['choosestudentmessage'] = 'Choose a student from the dropdown above to begin assessment';
-$string['assessmentitems'] = 'Assessment Items';
-$string['saveallassessments'] = 'Save All Assessments';
-$string['assessmentstatus'] = 'Assessment Status';
+$string['choosestudentmessage'] = 'Choose a student to assess:';
+$string['status'] = 'Status';
 $string['assessornotes'] = 'Assessor Notes';
-$string['addassessmentnotes'] = 'Add your assessment notes...';
-$string['maxcharacters'] = 'Maximum characters';
-
-// Statuses
 $string['notstarted'] = 'Not Started';
 $string['inprogress'] = 'In Progress';
 $string['satisfactory'] = 'Satisfactory';
 $string['notsatisfactory'] = 'Not Satisfactory';
-$string['progress'] = 'Progress';
-
-// Messages
-$string['itemadded'] = 'Item added successfully';
-$string['itemdeleted'] = 'Item deleted successfully';
+$string['save'] = 'Save';
+$string['back'] = 'Back';
+$string['observationsaved'] = 'Observations saved successfully';
 $string['assessmentadded'] = 'Assessment added successfully';
-$string['observationsaved'] = 'Observation saved successfully';
-$string['noitemsfound'] = 'No items found';
-$string['nostudentsfound'] = 'No students found';
 
-// Errors
-$string['invaliditemid'] = 'Invalid item ID';
-$string['invaliduserid'] = 'Invalid user ID';
-$string['invalidstatus'] = 'Invalid status';
-$string['notestoolong'] = 'Notes too long (maximum 1000 characters)';
-$string['missingdata'] = 'Missing required data';
-$string['databaseerror'] = 'Database error occurred';
-
-// Reports
-$string['generatereport'] = 'Generate Report';
-$string['printreport'] = 'Print Report';
-$string['completionrate'] = 'Completion Rate';
-$string['totalitems'] = 'Total Items';
-$string['assesseditems'] = 'Assessed Items';
-
-// Default strings for configuration
-$string['defaultstatuses'] = 'Default assessment statuses';
-$string['defaultstatuses_desc'] = 'Comma-separated list of default assessment statuses available for assessors';
-$string['defaultcategories'] = 'Default categories';
-$string['defaultcategories_desc'] = 'Comma-separated list of default categories for organizing checklist items';
+// Multi-student
+$string['multiobservationssaved'] = '{$a} observations saved successfully';
+$string['noobservationssaved'] = 'No observations were saved';
 
 // Events
-$string['eventassessmentmade'] = 'Assessment made';
 $string['eventcoursemoduleviewed'] = 'Course module viewed';
 $string['eventitemadded'] = 'Item added';
+$string['eventassessmentmade'] = 'Assessment made';
 
 // Privacy
-$string['privacy:metadata:observationchecklist_user_items'] = 'Information about user assessments in observation checklists';
-$string['privacy:metadata:observationchecklist_user_items:userid'] = 'The ID of the user being assessed';
-$string['privacy:metadata:observationchecklist_user_items:assessorid'] = 'The ID of the user making the assessment';
-$string['privacy:metadata:observationchecklist_user_items:status'] = 'The assessment status';
-$string['privacy:metadata:observationchecklist_user_items:assessornotes'] = 'Notes added by the assessor';
-$string['privacy:metadata:observationchecklist_user_items:dateassessed'] = 'The date when the assessment was made';
-
-// Mobile
-$string['mobileapp'] = 'Mobile App';
-$string['mobileappdesc'] = 'Use the mobile app to assess students on the go';
+$string['privacy:metadata:observationchecklist_user_items'] = 'Information about user progress on checklist items';
+$string['privacy:metadata:observationchecklist_user_items:userid'] = 'The ID of the user';
+$string['privacy:metadata:observationchecklist_user_items:status'] = 'The status of the assessment';
+$string['privacy:metadata:observationchecklist_user_items:assessornotes'] = 'Notes from the assessor';
+$string['privacy:metadata:observationchecklist_user_items:dateassessed'] = 'The date of assessment';

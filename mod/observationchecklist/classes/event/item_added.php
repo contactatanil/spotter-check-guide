@@ -9,14 +9,16 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * The mod_observationchecklist item added event.
  *
- * @package     mod_observationchecklist
- * @copyright   2024 Your Name <your@email.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    mod_observationchecklist
+ * @copyright  2024 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class item_added extends \core\event\base {
 
     /**
      * Init method.
+     *
+     * @return void
      */
     protected function init() {
         $this->data['crud'] = 'c';
@@ -25,7 +27,7 @@ class item_added extends \core\event\base {
     }
 
     /**
-     * Returns localised general event name.
+     * Return localised event name.
      *
      * @return string
      */
@@ -34,7 +36,7 @@ class item_added extends \core\event\base {
     }
 
     /**
-     * Returns description of what happened.
+     * Get description of what happened.
      *
      * @return string
      */
@@ -52,4 +54,3 @@ class item_added extends \core\event\base {
         return new \moodle_url('/mod/observationchecklist/view.php', array('id' => $this->contextinstanceid));
     }
 }
-

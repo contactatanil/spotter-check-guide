@@ -1,25 +1,11 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
 
-/**
- * Display information about all the mod_observationchecklist modules in the requested course.
- *
- * @package     mod_observationchecklist
- * @copyright   2024 Your Name <your@email.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
+require_once(dirname(__FILE__).'/lib.php');
 
-require(__DIR__.'/../../config.php');
-
-require_once(__DIR__.'/lib.php');
-
-$id = required_param('id', PARAM_INT);
+$id = required_param('id', PARAM_INT);   // course
 
 $course = $DB->get_record('course', array('id' => $id), '*', MUST_EXIST);
 
@@ -40,13 +26,11 @@ $PAGE->set_context($coursecontext);
 
 echo $OUTPUT->header();
 
-$modulenameplural = get_string('modulenameplural', 'mod_observationchecklist');
+$modulenameplural = get_string('modulenameplural', 'observationchecklist');
 echo $OUTPUT->heading($modulenameplural);
 
-$observationchecklists = get_all_instances_in_course('observationchecklist', $course);
-
-if (empty($observationchecklists)) {
-    notice(get_string('noobservationchecklists', 'mod_observationchecklist'), new moodle_url('/course/view.php', array('id' => $course->id)));
+if (! $observationchecklists = get_all_instances_in_course('observationchecklist', $course)) {
+    notice(get_string('noobservationchecklists', 'observationchecklist'), new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 
 $table = new html_table();

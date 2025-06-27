@@ -27,18 +27,18 @@ class get_user_progress extends external_api {
     public static function execute_parameters() {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module ID'),
-            'userid' => new external_value(PARAM_INT, 'User ID')
+            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0)
         ]);
     }
 
     /**
-     * Get user progress for checklist items
+     * Get user progress for a checklist
      * @param int $cmid Course module ID
-     * @param int $userid User ID
+     * @param int $userid User ID (0 for current user)
      * @return array
      */
-    public static function execute($cmid, $userid) {
-        global $DB;
+    public static function execute($cmid, $userid = 0) {
+        global $DB, $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'cmid' => $cmid,
@@ -52,21 +52,44 @@ class get_user_progress extends external_api {
         // Check capabilities
         require_capability('mod/observationchecklist:view', $context);
 
+        // Use current user if not specified
+        if ($params['userid'] == 0) {
+            $params['userid'] = $USER->id;
+        }
+
         try {
+            // Get checklist items
+            $items = $DB->get_records('observationchecklist_items', [
+                'checklistid' => $cm->instance
+            ], 'position ASC');
+
             // Get user progress
             $progress = $DB->get_records('observationchecklist_user_items', [
                 'checklistid' => $cm->instance,
                 'userid' => $params['userid']
-            ]);
+            ], '', 'itemid, status, assessornotes, dateassessed, assessorid');
 
             $result = [];
-            foreach ($progress as $item) {
-                $result[] = [
-                    'itemid' => $item->itemid,
-                    'status' => $item->status,
-                    'notes' => $item->assessornotes,
-                    'dateassessed' => $item->dateassessed
+            foreach ($items as $item) {
+                $itemdata = [
+                    'itemid' => $item->id,
+                    'itemtext' => $item->itemtext,
+                    'category' => $item->category,
+                    'status' => 'not_started',
+                    'notes' => '',
+                    'dateassessed' => 0,
+                    'assessorid' => 0
                 ];
+
+                if (isset($progress[$item->id])) {
+                    $p = $progress[$item->id];
+                    $itemdata['status'] = $p->status;
+                    $itemdata['notes'] = $p->assessornotes;
+                    $itemdata['dateassessed'] = $p->dateassessed;
+                    $itemdata['assessorid'] = $p->assessorid;
+                }
+
+                $result[] = $itemdata;
             }
 
             return $result;
@@ -84,9 +107,12 @@ class get_user_progress extends external_api {
         return new external_multiple_structure(
             new external_single_structure([
                 'itemid' => new external_value(PARAM_INT, 'Item ID'),
+                'itemtext' => new external_value(PARAM_TEXT, 'Item text'),
+                'category' => new external_value(PARAM_TEXT, 'Item category'),
                 'status' => new external_value(PARAM_TEXT, 'Assessment status'),
                 'notes' => new external_value(PARAM_TEXT, 'Assessment notes'),
-                'dateassessed' => new external_value(PARAM_INT, 'Date assessed')
+                'dateassessed' => new external_value(PARAM_INT, 'Date assessed'),
+                'assessorid' => new external_value(PARAM_INT, 'Assessor ID')
             ])
         );
     }
