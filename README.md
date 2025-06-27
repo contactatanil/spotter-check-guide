@@ -1,73 +1,107 @@
-# Welcome to your Lovable project
 
-## Project info
+# Moodle Observation Checklist Plugin
 
-**URL**: https://lovable.dev/projects/437a6eba-c1c7-4d81-b20d-75c8b9b407af
+A comprehensive observation checklist plugin for Moodle 4.0+ that enables teachers and assessors to create, manage, and track student observations and assessments.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Multi-Student Observation**: Observe and assess multiple students simultaneously
+- **Flexible Checklist Items**: Create custom checklist items with categories
+- **Assessment Tracking**: Track student progress with detailed assessment notes
+- **Progress Reports**: Generate and export comprehensive progress reports
+- **Print Support**: Print-friendly observation reports
+- **Real-time Updates**: AJAX-powered interface for seamless user experience
 
-**Use Lovable**
+## Capabilities
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/437a6eba-c1c7-4d81-b20d-75c8b9b407af) and start prompting.
+The plugin provides the following capabilities:
 
-Changes made via Lovable will be committed automatically to this repo.
+- **mod/observationchecklist:addinstance** - Add new checklist instances
+- **mod/observationchecklist:view** - View checklist content
+- **mod/observationchecklist:edit** - Edit checklist items
+- **mod/observationchecklist:assess** - Assess student observations
+- **mod/observationchecklist:submit** - Submit evidence for assessment
+- **mod/observationchecklist:viewreports** - View observation reports
+- **mod/observationchecklist:export** - Export observation data
 
-**Use your preferred IDE**
+## Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Download the plugin files
+2. Extract to `mod/observationchecklist` in your Moodle installation
+3. Visit Site Administration > Notifications to complete the installation
+4. Configure plugin settings as needed
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Compatibility
 
-Follow these steps:
+- **Moodle Version**: 4.0+
+- **PHP Version**: 7.4+
+- **Database**: MySQL 5.7+, PostgreSQL 10+
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Database Schema
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+The plugin creates three main tables:
 
-# Step 3: Install the necessary dependencies.
-npm i
+- `observationchecklist` - Main activity instances
+- `observationchecklist_items` - Checklist items and categories
+- `observationchecklist_user_items` - User progress and assessments
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## API Endpoints
 
-**Edit a file directly in GitHub**
+The plugin provides the following web services:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- `mod_observationchecklist_add_item` - Add new checklist items
+- `mod_observationchecklist_delete_item` - Delete checklist items
+- `mod_observationchecklist_assess_item` - Assess checklist items
+- `mod_observationchecklist_get_user_progress` - Get user progress data
+- `mod_observationchecklist_generate_report` - Generate printable reports
+- `mod_observationchecklist_export_report` - Export report data
 
-**Use GitHub Codespaces**
+## Usage
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Create Activity**: Add an Observation Checklist activity to your course
+2. **Configure Settings**: Set permissions for student submissions and assessments
+3. **Add Items**: Create checklist items organized by categories
+4. **Observe Students**: Use the multi-student interface to assess multiple students
+5. **Track Progress**: Monitor individual student progress and completion
+6. **Generate Reports**: Create detailed reports for assessment records
 
-## What technologies are used for this project?
+## Configuration Options
 
-This project is built with:
+- **Allow Student Add**: Enable students to add their own checklist items
+- **Allow Student Submit**: Enable students to submit evidence for assessment
+- **Enable Printing**: Allow generation of printable reports
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Development
 
-## How can I deploy this project?
+This plugin follows Moodle development best practices and coding standards:
 
-Simply open [Lovable](https://lovable.dev/projects/437a6eba-c1c7-4d81-b20d-75c8b9b407af) and click on Share -> Publish.
+- Proper capability checks and security measures
+- Clean separation of concerns with dedicated classes
+- Comprehensive database schema with proper foreign keys
+- Modern JavaScript with AMD modules
+- Responsive design with mobile support
 
-## Can I connect a custom domain to my Lovable project?
+## Support
 
-Yes, you can!
+For issues, questions, or contributions, please refer to the Moodle community forums or the plugin documentation.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This plugin is released under the GNU GPL v3 license, the same as Moodle itself.
+
+## Changelog
+
+### Latest Updates
+
+- **Moodle 4.0+ Compatibility**: Updated for full compatibility with Moodle 4.0 and later versions
+- **Enhanced Database Schema**: Improved table structure with proper foreign key relationships
+- **Updated API**: Modernized web services following current Moodle standards
+- **Security Improvements**: Enhanced capability checks and input validation
+- **Code Refactoring**: Improved code organization and maintainability
+- **Bug Fixes**: Resolved installation and functionality issues
+
+### Previous Versions
+
+- Initial release with basic checklist functionality
+- Multi-student observation interface
+- Progress tracking and reporting features
