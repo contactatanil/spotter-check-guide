@@ -13,6 +13,7 @@
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="descriptionformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="allowstudentadd" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="allowstudentsubmit" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="enableprinting" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
@@ -24,6 +25,7 @@
         <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
+    
     <TABLE NAME="observationchecklist_items" COMMENT="Stores checklist items">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -42,9 +44,10 @@
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="checklistid_sortorder" UNIQUE="false" FIELDS="checklistid, sortorder"/>
+        <INDEX NAME="checklistid_position" UNIQUE="false" FIELDS="checklistid, position"/>
       </INDEXES>
     </TABLE>
+    
     <TABLE NAME="observationchecklist_user_items" COMMENT="Stores user progress and assessments for checklist items">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -67,6 +70,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="itemid_userid" UNIQUE="true" FIELDS="itemid, userid"/>
+        <INDEX NAME="checklistid_userid" UNIQUE="false" FIELDS="checklistid, userid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

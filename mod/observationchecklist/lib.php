@@ -47,6 +47,10 @@ function observationchecklist_supports($feature) {
             return false;
         case FEATURE_MOD_PURPOSE:
             return MOD_PURPOSE_ASSESSMENT;
+        case FEATURE_GROUPS:
+            return true;
+        case FEATURE_GROUPINGS:
+            return true;
         default:
             return null;
     }
@@ -68,6 +72,24 @@ function observationchecklist_add_instance($moduleinstance, $mform = null) {
 
     $moduleinstance->timecreated = time();
     $moduleinstance->timemodified = time();
+
+    // Handle description editor
+    if (isset($moduleinstance->description_editor)) {
+        $moduleinstance->descriptionformat = $moduleinstance->description_editor['format'];
+        $moduleinstance->description = $moduleinstance->description_editor['text'];
+        unset($moduleinstance->description_editor);
+    }
+
+    // Set default values for optional fields
+    if (!isset($moduleinstance->allowstudentadd)) {
+        $moduleinstance->allowstudentadd = 1;
+    }
+    if (!isset($moduleinstance->allowstudentsubmit)) {
+        $moduleinstance->allowstudentsubmit = 1;
+    }
+    if (!isset($moduleinstance->enableprinting)) {
+        $moduleinstance->enableprinting = 1;
+    }
 
     $moduleinstance->id = $DB->insert_record('observationchecklist', $moduleinstance);
 
@@ -91,6 +113,13 @@ function observationchecklist_update_instance($moduleinstance, $mform = null) {
 
     $moduleinstance->timemodified = time();
     $moduleinstance->id = $moduleinstance->instance;
+
+    // Handle description editor
+    if (isset($moduleinstance->description_editor)) {
+        $moduleinstance->descriptionformat = $moduleinstance->description_editor['format'];
+        $moduleinstance->description = $moduleinstance->description_editor['text'];
+        unset($moduleinstance->description_editor);
+    }
 
     $result = $DB->update_record('observationchecklist', $moduleinstance);
 
@@ -136,13 +165,7 @@ function observationchecklist_delete_instance($id) {
  * @return bool True if the scale is used by the given observationchecklist instance.
  */
 function observationchecklist_scale_used($moduleinstanceid, $scaleid) {
-    global $DB;
-
-    if ($scaleid && $DB->record_exists('observationchecklist', array('id' => $moduleinstanceid, 'grade' => -$scaleid))) {
-        return true;
-    } else {
-        return false;
-    }
+    return false; // This module doesn't use scales
 }
 
 /**
@@ -154,13 +177,7 @@ function observationchecklist_scale_used($moduleinstanceid, $scaleid) {
  * @return bool True if the scale is used by any observationchecklist instance.
  */
 function observationchecklist_scale_used_anywhere($scaleid) {
-    global $DB;
-
-    if ($scaleid && $DB->record_exists('observationchecklist', array('grade' => -$scaleid))) {
-        return true;
-    } else {
-        return false;
-    }
+    return false; // This module doesn't use scales
 }
 
 /**
@@ -207,12 +224,12 @@ function observationchecklist_grade_item_delete($moduleinstance) {
  * @param int $userid Update grade of specific user only, 0 means all participants.
  */
 function observationchecklist_update_grades($moduleinstance, $userid = 0) {
-    global $CFG, $DB;
+    global $CFG;
     require_once($CFG->libdir.'/gradelib.php');
 
-    // Populate array of grade objects indexed by userid.
-    $grades = array();
-    grade_update('mod/observationchecklist', $moduleinstance->course, 'mod', 'observationchecklist', $moduleinstance->id, 0, $grades);
+    // This module doesn't use grades, so we just update the item
+    grade_update('mod/observationchecklist', $moduleinstance->course, 'mod', 'observationchecklist', 
+                 $moduleinstance->id, 0, null);
 }
 
 /**
@@ -227,7 +244,7 @@ function observationchecklist_update_grades($moduleinstance, $userid = 0) {
  * @return string[]
  */
 function observationchecklist_get_file_areas($course, $cm, $context) {
-    return array();
+    return array('description');
 }
 
 /**
@@ -274,6 +291,20 @@ function observationchecklist_pluginfile($course, $cm, $context, $filearea, arra
 
     require_login($course, true, $cm);
 
+    if ($filearea === 'description') {
+        $relativepath = implode('/', $args);
+        $fullpath = "/$context->id/mod_observationchecklist/$filearea/$relativepath";
+        
+        $fs = get_file_storage();
+        $file = $fs->get_file_by_hash(sha1($fullpath));
+        
+        if (!$file || $file->is_directory()) {
+            send_file_not_found();
+        }
+        
+        send_stored_file($file, 86400, 0, $forcedownload, $options);
+    }
+
     send_file_not_found();
 }
 
@@ -288,6 +319,17 @@ function observationchecklist_pluginfile($course, $cm, $context, $filearea, arra
  * @param cm_info $cm
  */
 function observationchecklist_extend_navigation($navref, $course, $module, $cm) {
+    global $USER;
+    
+    $context = context_module::instance($cm->id);
+    
+    if (has_capability('mod/observationchecklist:assess', $context)) {
+        $navref->add(
+            get_string('multistudentobservation', 'mod_observationchecklist'),
+            new moodle_url('/mod/observationchecklist/multi_student.php', array('id' => $cm->id)),
+            navigation_node::TYPE_SETTING
+        );
+    }
 }
 
 /**
@@ -300,4 +342,76 @@ function observationchecklist_extend_navigation($navref, $course, $module, $cm) 
  * @param navigation_node $observationchecklistnode {@see navigation_node}
  */
 function observationchecklist_extend_settings_navigation($settingsnav, $observationchecklistnode = null) {
+    global $PAGE;
+    
+    if (!$observationchecklistnode) {
+        return;
+    }
+    
+    $context = $PAGE->cm->context;
+    
+    if (has_capability('mod/observationchecklist:edit', $context)) {
+        $observationchecklistnode->add(
+            get_string('edit'),
+            new moodle_url('/course/modedit.php', array('update' => $PAGE->cm->id)),
+            navigation_node::TYPE_SETTING
+        );
+    }
+}
+
+/**
+ * Reset course form definition
+ *
+ * @param object $mform form passed by reference
+ */
+function observationchecklist_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'observationchecklistheader', get_string('modulenameplural', 'mod_observationchecklist'));
+    $mform->addElement('advcheckbox', 'reset_observationchecklist_items', get_string('resetitems', 'mod_observationchecklist'));
+    $mform->addElement('advcheckbox', 'reset_observationchecklist_assessments', get_string('resetassessments', 'mod_observationchecklist'));
+}
+
+/**
+ * Course reset form defaults
+ *
+ * @param object $course
+ * @return array
+ */
+function observationchecklist_reset_course_form_defaults($course) {
+    return array('reset_observationchecklist_items' => 0, 'reset_observationchecklist_assessments' => 0);
+}
+
+/**
+ * Removes all checklist items and assessments from specified course
+ *
+ * @param object $data
+ * @return array
+ */
+function observationchecklist_reset_userdata($data) {
+    global $DB;
+    
+    $componentstr = get_string('modulenameplural', 'mod_observationchecklist');
+    $status = array();
+    
+    if (!empty($data->reset_observationchecklist_assessments)) {
+        $checklists = $DB->get_records('observationchecklist', array('course' => $data->courseid));
+        foreach ($checklists as $checklist) {
+            $DB->delete_records('observationchecklist_user_items', array('checklistid' => $checklist->id));
+        }
+        $status[] = array('component' => $componentstr, 
+                         'item' => get_string('resetassessments', 'mod_observationchecklist'), 
+                         'error' => false);
+    }
+    
+    if (!empty($data->reset_observationchecklist_items)) {
+        $checklists = $DB->get_records('observationchecklist', array('course' => $data->courseid));
+        foreach ($checklists as $checklist) {
+            $DB->delete_records('observationchecklist_items', array('checklistid' => $checklist->id));
+            $DB->delete_records('observationchecklist_user_items', array('checklistid' => $checklist->id));
+        }
+        $status[] = array('component' => $componentstr, 
+                         'item' => get_string('resetitems', 'mod_observationchecklist'), 
+                         'error' => false);
+    }
+    
+    return $status;
 }
