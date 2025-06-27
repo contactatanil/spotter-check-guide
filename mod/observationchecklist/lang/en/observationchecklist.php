@@ -1,5 +1,19 @@
+
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Plugin strings are defined here.
@@ -20,12 +34,15 @@ $string['pluginadministration'] = 'Observation Checklist administration';
 $string['observationchecklist:addinstance'] = 'Add a new observation checklist';
 $string['observationchecklist:view'] = 'View observation checklist';
 $string['observationchecklist:edit'] = 'Edit observation checklist items';
-$string['observationchecklist:assess'] = 'Assess observation checklist items';
-$string['observationchecklist:submit'] = 'Submit observation checklist';
+$string['observationchecklist:assess'] = 'Assess student observations';
+$string['observationchecklist:submit'] = 'Submit evidence for assessment';
+$string['observationchecklist:viewreports'] = 'View observation reports';
+$string['observationchecklist:export'] = 'Export observation checklist reports';
+$string['observationchecklist:manage'] = 'Manage observation checklist';
 
 // Form elements
 $string['observationchecklistname'] = 'Observation checklist name';
-$string['observationchecklistname_help'] = 'This is the content of the help tooltip associated with the name field.';
+$string['observationchecklistname_help'] = 'This is the name of your observation checklist activity.';
 $string['name'] = 'Name';
 $string['description'] = 'Description';
 $string['itemtext'] = 'Item text';
@@ -119,10 +136,6 @@ $string['exportcsv'] = 'Export CSV';
 $string['exportexcel'] = 'Export Excel';
 $string['exportpdf'] = 'Export PDF';
 $string['exportcomplete'] = 'Export completed successfully';
-
-// Capabilities
-$string['observationchecklist:export'] = 'Export observation checklist reports';
-$string['observationchecklist:viewreports'] = 'View observation checklist reports';
 
 // Filters
 $string['filterbyuser'] = 'Filter by user';

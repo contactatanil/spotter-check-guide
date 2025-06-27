@@ -1,6 +1,19 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * The main mod_observationchecklist configuration form.
@@ -16,6 +29,10 @@ require_once($CFG->dirroot.'/course/moodleform_mod.php');
 
 /**
  * Module instance settings form.
+ *
+ * @package    mod_observationchecklist
+ * @copyright  2024 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_observationchecklist_mod_form extends moodleform_mod {
 
@@ -46,10 +63,39 @@ class mod_observationchecklist_mod_form extends moodleform_mod {
         // Adding the standard "intro" and "introformat" fields.
         $this->standard_intro_elements();
 
+        // Settings fieldset
+        $mform->addElement('header', 'observationchecklistsettings', get_string('settings', 'observationchecklist'));
+
+        // Allow students to add items
+        $mform->addElement('advcheckbox', 'allowstudentadd', get_string('allowstudentadd', 'observationchecklist'));
+        $mform->addHelpButton('allowstudentadd', 'allowstudentadd', 'observationchecklist');
+        $mform->setDefault('allowstudentadd', get_config('mod_observationchecklist', 'defaultallowstudentadd'));
+
+        // Allow student submissions
+        $mform->addElement('advcheckbox', 'allowstudentsubmit', get_string('allowstudentsubmit', 'observationchecklist'));
+        $mform->addHelpButton('allowstudentsubmit', 'allowstudentsubmit', 'observationchecklist');
+        $mform->setDefault('allowstudentsubmit', get_config('mod_observationchecklist', 'defaultallowstudentsubmit'));
+
+        // Enable printing
+        $mform->addElement('advcheckbox', 'enableprinting', get_string('enableprinting', 'observationchecklist'));
+        $mform->addHelpButton('enableprinting', 'enableprinting', 'observationchecklist');
+        $mform->setDefault('enableprinting', get_config('mod_observationchecklist', 'defaultenableprinting'));
+
         // Add standard elements.
         $this->standard_coursemodule_elements();
 
         // Add standard buttons.
         $this->add_action_buttons();
+    }
+
+    /**
+     * Perform minimal validation on the settings form
+     * @param array $data
+     * @param array $files
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        return $errors;
     }
 }
