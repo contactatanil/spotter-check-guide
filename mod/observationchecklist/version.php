@@ -26,8 +26,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_observationchecklist';
-$plugin->release = '1.0.0';
 $plugin->version = 2024122700;
+$plugin->release = '1.0.0';
 $plugin->requires = 2022112800; // Moodle 4.1 minimum
 $plugin->maturity = MATURITY_STABLE;
 $plugin->supported = [401, 404]; // Moodle 4.1-4.4 supported

@@ -20,8 +20,10 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
       </KEYS>
+      <INDEXES>
+        <INDEX NAME="course" UNIQUE="false" FIELDS="course"/>
+      </INDEXES>
     </TABLE>
     
     <TABLE NAME="observationchecklist_items" COMMENT="Stores checklist items">
@@ -37,9 +39,11 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="checklistid" TYPE="foreign" FIELDS="checklistid" REFTABLE="observationchecklist" REFFIELDS="id"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
+      <INDEXES>
+        <INDEX NAME="checklistid" UNIQUE="false" FIELDS="checklistid"/>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
     </TABLE>
     
     <TABLE NAME="observationchecklist_user_items" COMMENT="Stores user progress and assessments for checklist items">
@@ -57,11 +61,13 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="checklistid" TYPE="foreign" FIELDS="checklistid" REFTABLE="observationchecklist" REFFIELDS="id"/>
-        <KEY NAME="itemid" TYPE="foreign" FIELDS="itemid" REFTABLE="observationchecklist_items" REFFIELDS="id"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="assessorid" TYPE="foreign" FIELDS="assessorid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
+      <INDEXES>
+        <INDEX NAME="checklistid" UNIQUE="false" FIELDS="checklistid"/>
+        <INDEX NAME="itemid" UNIQUE="false" FIELDS="itemid"/>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="assessorid" UNIQUE="false" FIELDS="assessorid"/>
+      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>

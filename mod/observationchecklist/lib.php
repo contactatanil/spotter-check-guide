@@ -1,4 +1,3 @@
-
 <?php
 // This file is part of Moodle - http://moodle.org/
 
@@ -52,34 +51,12 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->timecreated = time();
     $observationchecklist->timemodified = time();
 
-    // Set default values for new fields if not provided
-    if (!isset($observationchecklist->allowstudentadd)) {
-        $observationchecklist->allowstudentadd = 1;
-    }
-    if (!isset($observationchecklist->allowstudentsubmit)) {
-        $observationchecklist->allowstudentsubmit = 1;
-    }
-    if (!isset($observationchecklist->enableprinting)) {
-        $observationchecklist->enableprinting = 1;
-    }
+    // Set default values for checkbox fields
+    $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
+    $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
+    $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
 
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
-
-    // Process intro files if we have the form
-    if ($mform) {
-        $cmid = $observationchecklist->coursemodule;
-        $context = context_module::instance($cmid);
-        $observationchecklist->intro = file_save_draft_area_files(
-            $observationchecklist->intro,
-            $context->id,
-            'mod_observationchecklist',
-            'intro',
-            0,
-            array('subdirs' => true),
-            $observationchecklist->intro
-        );
-        $DB->update_record('observationchecklist', $observationchecklist);
-    }
 
     return $observationchecklist->id;
 }
@@ -97,20 +74,10 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     $observationchecklist->timemodified = time();
     $observationchecklist->id = $observationchecklist->instance;
 
-    // Process intro files if we have the form
-    if ($mform) {
-        $cmid = $observationchecklist->coursemodule;
-        $context = context_module::instance($cmid);
-        $observationchecklist->intro = file_save_draft_area_files(
-            $observationchecklist->intro,
-            $context->id,
-            'mod_observationchecklist',
-            'intro',
-            0,
-            array('subdirs' => true),
-            $observationchecklist->intro
-        );
-    }
+    // Set default values for checkbox fields
+    $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
+    $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
+    $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
 
     return $DB->update_record('observationchecklist', $observationchecklist);
 }
@@ -273,41 +240,6 @@ function observationchecklist_get_extra_capabilities() {
     return array();
 }
 
-// File API
-
-/**
- * Returns the lists of all browsable file areas within the given module context
- *
- * @param stdClass $course
- * @param stdClass $cm
- * @param stdClass $context
- * @return array of [(string)filearea] => (string)description
- */
-function observationchecklist_get_file_areas($course, $cm, $context) {
-    return array();
-}
-
-/**
- * File browsing support for observationchecklist file areas
- *
- * @package mod_observationchecklist
- * @category files
- *
- * @param file_browser $browser
- * @param array $areas
- * @param stdClass $course
- * @param stdClass $cm
- * @param stdClass $context
- * @param string $filearea
- * @param int $itemid
- * @param string $filepath
- * @param string $filename
- * @return file_info instance or null if not found
- */
-function observationchecklist_get_file_info($browser, $areas, $course, $cm, $context, $filearea, $itemid, $filepath, $filename) {
-    return null;
-}
-
 /**
  * Serves the files from the observationchecklist file areas
  *
@@ -323,13 +255,5 @@ function observationchecklist_get_file_info($browser, $areas, $course, $cm, $con
  * @param array $options additional options affecting the file serving
  */
 function observationchecklist_pluginfile($course, $cm, $context, $filearea, array $args, $forcedownload, array $options=array()) {
-    global $DB, $CFG;
-
-    if ($context->contextlevel != CONTEXT_MODULE) {
-        send_file_not_found();
-    }
-
-    require_login($course, true, $cm);
-
     send_file_not_found();
 }
