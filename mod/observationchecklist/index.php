@@ -2,10 +2,19 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
 
-require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once(dirname(__FILE__).'/lib.php');
+/**
+ * Display information about all the mod_observationchecklist modules in the requested course.
+ *
+ * @package     mod_observationchecklist
+ * @copyright   2024 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-$id = required_param('id', PARAM_INT);   // course
+require(__DIR__.'/../../config.php');
+
+require_once(__DIR__.'/lib.php');
+
+$id = required_param('id', PARAM_INT);
 
 $course = $DB->get_record('course', array('id' => $id), '*', MUST_EXIST);
 
@@ -29,7 +38,9 @@ echo $OUTPUT->header();
 $modulenameplural = get_string('modulenameplural', 'observationchecklist');
 echo $OUTPUT->heading($modulenameplural);
 
-if (! $observationchecklists = get_all_instances_in_course('observationchecklist', $course)) {
+$observationchecklists = get_all_instances_in_course('observationchecklist', $course);
+
+if (empty($observationchecklists)) {
     notice(get_string('noobservationchecklists', 'observationchecklist'), new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 

@@ -16,20 +16,6 @@ defined('MOODLE_INTERNAL') || die();
 class course_module_viewed extends \core\event\course_module_viewed {
 
     /**
-     * Create instance of event.
-     *
-     * @param array $data
-     * @return course_module_viewed
-     */
-    public static function create_from_course_module(\stdClass $cm, \context_module $context) {
-        $data = array(
-            'context' => $context,
-            'objectid' => $cm->instance
-        );
-        return self::create($data);
-    }
-
-    /**
      * Init method.
      *
      * @return void
@@ -40,41 +26,7 @@ class course_module_viewed extends \core\event\course_module_viewed {
         $this->data['objecttable'] = 'observationchecklist';
     }
 
-    /**
-     * Get URL related to the action.
-     *
-     * @return \moodle_url
-     */
-    public function get_url() {
-        return new \moodle_url('/mod/observationchecklist/view.php', array('id' => $this->contextinstanceid));
-    }
-
-    /**
-     * Return localised event name.
-     *
-     * @return string
-     */
-    public static function get_name() {
-        return get_string('eventcoursemoduleviewed', 'mod_observationchecklist');
-    }
-
-    /**
-     * Get description of what happened.
-     *
-     * @return string
-     */
-    public function get_description() {
-        return "The user with id '$this->userid' viewed the observation checklist activity with " .
-            "course module id '$this->contextinstanceid'.";
-    }
-
-    /**
-     * Get legacy log data.
-     *
-     * @return array
-     */
-    protected function get_legacy_logdata() {
-        return array($this->courseid, 'observationchecklist', 'view', 'view.php?id=' . $this->contextinstanceid,
-            $this->objectid, $this->contextinstanceid);
+    public static function get_objectid_mapping() {
+        return array('db' => 'observationchecklist', 'restore' => 'observationchecklist');
     }
 }
