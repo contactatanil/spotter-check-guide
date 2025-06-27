@@ -1,10 +1,22 @@
 
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
-require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once(dirname(__FILE__).'/lib.php');
-require_once(dirname(__FILE__).'/locallib.php');
+/**
+ * Assessment interface for observationchecklist
+ *
+ * @package    mod_observationchecklist
+ * @copyright  2024 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+require(__DIR__.'/../../config.php');
+require_once(__DIR__.'/lib.php');
 
 $id = required_param('id', PARAM_INT); // Course module ID
 $userid = required_param('userid', PARAM_INT); // Student ID
@@ -24,24 +36,39 @@ if (data_submitted() && confirm_sesskey()) {
     $assessments = optional_param_array('assessment', array(), PARAM_RAW);
     $notes = optional_param_array('notes', array(), PARAM_TEXT);
     
-    $saved = 0;
     foreach ($assessments as $itemid => $status) {
-        if (!empty($status) && $status !== 'not_observed') {
+        if (!empty($status)) {
             $itemid = (int)$itemid;
             $assessornotes = isset($notes[$itemid]) ? $notes[$itemid] : '';
             
-            try {
-                observationchecklist_assess_item($itemid, $userid, $status, $assessornotes, $USER->id);
-                $saved++;
-            } catch (Exception $e) {
-                // Continue with other assessments
+            // Check if assessment already exists
+            $existing = $DB->get_record('observationchecklist_user_items', 
+                array('itemid' => $itemid, 'userid' => $userid));
+            
+            if ($existing) {
+                $existing->status = $status;
+                $existing->assessornotes = $assessornotes;
+                $existing->assessorid = $USER->id;
+                $existing->dateassessed = time();
+                $existing->timemodified = time();
+                $DB->update_record('observationchecklist_user_items', $existing);
+            } else {
+                $record = new stdClass();
+                $record->checklistid = $observationchecklist->id;
+                $record->itemid = $itemid;
+                $record->userid = $userid;
+                $record->status = $status;
+                $record->assessornotes = $assessornotes;
+                $record->assessorid = $USER->id;
+                $record->dateassessed = time();
+                $record->timecreated = time();
+                $record->timemodified = time();
+                $DB->insert_record('observationchecklist_user_items', $record);
             }
         }
     }
     
-    if ($saved > 0) {
-        redirect($PAGE->url, get_string('observationsaved', 'mod_observationchecklist'), null, \core\output\notification::NOTIFY_SUCCESS);
-    }
+    redirect($PAGE->url, get_string('observationsaved', 'mod_observationchecklist'));
 }
 
 $PAGE->set_url('/mod/observationchecklist/assess.php', array('id' => $cm->id, 'userid' => $userid));
@@ -54,37 +81,27 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('studentassessment', 'mod_observationchecklist') . ': ' . fullname($student));
 
 // Get items and current progress
-$items = observationchecklist_get_items($observationchecklist->id);
-$progress = observationchecklist_get_user_progress($observationchecklist->id, $userid);
+$items = $DB->get_records('observationchecklist_items', array('checklistid' => $observationchecklist->id), 'id ASC');
+$progress = $DB->get_records('observationchecklist_user_items', 
+    array('checklistid' => $observationchecklist->id, 'userid' => $userid), '', 'itemid, status, assessornotes');
 
 if (!empty($items)) {
     echo '<form method="post" action="' . $PAGE->url . '">';
     echo '<input type="hidden" name="sesskey" value="' . sesskey() . '" />';
     
-    $currentcategory = '';
     foreach ($items as $item) {
-        if ($item->category != $currentcategory) {
-            if ($currentcategory != '') {
-                echo '</div></div>'; // Close previous category card
-            }
-            echo '<div class="card mt-3">';
-            echo '<div class="card-header"><h5>' . format_string($item->category) . '</h5></div>';
-            echo '<div class="card-body">';
-            $currentcategory = $item->category;
-        }
-        
         $currentstatus = isset($progress[$item->id]) ? $progress[$item->id]->status : 'not_started';
         $currentnotes = isset($progress[$item->id]) ? $progress[$item->id]->assessornotes : '';
         
-        echo '<div class="mb-4 border-bottom pb-3">';
-        echo '<div class="mb-2"><strong>' . format_text($item->itemtext) . '</strong></div>';
+        echo '<div class="card mb-3">';
+        echo '<div class="card-body">';
+        echo '<h6 class="card-title">' . format_text($item->itemtext) . '</h6>';
         
         // Status selection
-        echo '<div class="mb-2">';
+        echo '<div class="mb-3">';
         echo '<label class="form-label">' . get_string('status', 'mod_observationchecklist') . '</label><br>';
         
         $statuses = array(
-            'not_observed' => get_string('notobserved', 'mod_observationchecklist'),
             'not_started' => get_string('notstarted', 'mod_observationchecklist'),
             'in_progress' => get_string('inprogress', 'mod_observationchecklist'),
             'satisfactory' => get_string('satisfactory', 'mod_observationchecklist'),
@@ -102,7 +119,7 @@ if (!empty($items)) {
         echo '</div>';
         
         // Notes
-        echo '<div class="mb-2">';
+        echo '<div class="mb-3">';
         echo '<label for="notes_' . $item->id . '" class="form-label">' . get_string('assessornotes', 'mod_observationchecklist') . '</label>';
         echo '<textarea class="form-control" id="notes_' . $item->id . '" name="notes[' . $item->id . ']" rows="2">';
         echo s($currentnotes);
@@ -110,10 +127,7 @@ if (!empty($items)) {
         echo '</div>';
         
         echo '</div>';
-    }
-    
-    if ($currentcategory != '') {
-        echo '</div></div>'; // Close last category card
+        echo '</div>';
     }
     
     echo '<div class="mt-3">';
@@ -126,7 +140,6 @@ if (!empty($items)) {
     echo '<div class="alert alert-info">';
     echo get_string('noitemsfound', 'mod_observationchecklist');
     echo '</div>';
-    echo '<a href="view.php?id=' . $cm->id . '" class="btn btn-secondary">' . get_string('back', 'mod_observationchecklist') . '</a>';
 }
 
 echo $OUTPUT->footer();
