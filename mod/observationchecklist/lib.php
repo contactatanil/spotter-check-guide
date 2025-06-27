@@ -56,28 +56,37 @@ function observationchecklist_supports($feature) {
 function observationchecklist_add_instance(stdClass $observationchecklist, mod_observationchecklist_mod_form $mform = null) {
     global $DB;
 
-    $observationchecklist->timecreated = time();
-    $observationchecklist->timemodified = time();
+    try {
+        $observationchecklist->timecreated = time();
+        $observationchecklist->timemodified = time();
 
-    // Set default values for checkbox fields
-    $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
-    $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
-    $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
-    $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
+        // Set default values for checkbox fields
+        $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
+        $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
+        $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
+        $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
 
-    // Grading settings
-    if (!isset($observationchecklist->grade)) {
-        $observationchecklist->grade = 100;
+        // Grading settings
+        if (!isset($observationchecklist->grade)) {
+            $observationchecklist->grade = 100;
+        }
+        if (!isset($observationchecklist->grademethod)) {
+            $observationchecklist->grademethod = 0;
+        }
+
+        $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
+
+        if (!$observationchecklist->id) {
+            throw new moodle_exception('cannotinsertrecord', 'error');
+        }
+
+        observationchecklist_grade_item_update($observationchecklist);
+
+        return $observationchecklist->id;
+    } catch (Exception $e) {
+        debugging('Error adding observationchecklist instance: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        throw $e;
     }
-    if (!isset($observationchecklist->grademethod)) {
-        $observationchecklist->grademethod = 0;
-    }
-
-    $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
-
-    observationchecklist_grade_item_update($observationchecklist);
-
-    return $observationchecklist->id;
 }
 
 /**
@@ -90,20 +99,29 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
 function observationchecklist_update_instance(stdClass $observationchecklist, mod_observationchecklist_mod_form $mform = null) {
     global $DB;
 
-    $observationchecklist->timemodified = time();
-    $observationchecklist->id = $observationchecklist->instance;
+    try {
+        $observationchecklist->timemodified = time();
+        $observationchecklist->id = $observationchecklist->instance;
 
-    // Set default values for checkbox fields
-    $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
-    $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
-    $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
-    $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
+        // Set default values for checkbox fields
+        $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
+        $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
+        $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
+        $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
 
-    $result = $DB->update_record('observationchecklist', $observationchecklist);
+        $result = $DB->update_record('observationchecklist', $observationchecklist);
 
-    observationchecklist_grade_item_update($observationchecklist);
+        if (!$result) {
+            throw new moodle_exception('cannotupdaterecord', 'error');
+        }
 
-    return $result;
+        observationchecklist_grade_item_update($observationchecklist);
+
+        return $result;
+    } catch (Exception $e) {
+        debugging('Error updating observationchecklist instance: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        throw $e;
+    }
 }
 
 /**
@@ -115,22 +133,38 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
 function observationchecklist_delete_instance($id) {
     global $DB;
 
-    if (!$observationchecklist = $DB->get_record('observationchecklist', array('id' => $id))) {
+    try {
+        if (!$observationchecklist = $DB->get_record('observationchecklist', array('id' => $id))) {
+            return false;
+        }
+
+        // Use transactions for data integrity
+        $transaction = $DB->start_delegated_transaction();
+
+        // Delete related records in proper order
+        $DB->delete_records('observationchecklist_user_items', array('checklistid' => $id));
+        $DB->delete_records('observationchecklist_items', array('checklistid' => $id));
+        $DB->delete_records('observationchecklist_grades', array('checklistid' => $id));
+        
+        // Delete grade item
+        observationchecklist_grade_item_delete($observationchecklist);
+        
+        // Delete the instance
+        $result = $DB->delete_records('observationchecklist', array('id' => $id));
+
+        if (!$result) {
+            throw new moodle_exception('cannotdeleterecord', 'error');
+        }
+
+        $transaction->allow_commit();
+        return true;
+    } catch (Exception $e) {
+        if (isset($transaction)) {
+            $transaction->rollback($e);
+        }
+        debugging('Error deleting observationchecklist instance: ' . $e->getMessage(), DEBUG_DEVELOPER);
         return false;
     }
-
-    // Delete related records
-    $DB->delete_records('observationchecklist_items', array('checklistid' => $id));
-    $DB->delete_records('observationchecklist_user_items', array('checklistid' => $id));
-    $DB->delete_records('observationchecklist_grades', array('checklistid' => $id));
-    
-    // Delete grade item
-    observationchecklist_grade_item_delete($observationchecklist);
-    
-    // Delete the instance
-    $DB->delete_records('observationchecklist', array('id' => $id));
-
-    return true;
 }
 
 /**
@@ -219,14 +253,19 @@ function observationchecklist_get_user_grades($observationchecklist, $userid = 0
         $params[] = $userid;
     }
 
-    $grades = $DB->get_records_select('observationchecklist_grades', $where, $params);
-    
-    $return = array();
-    foreach ($grades as $grade) {
-        $return[$grade->userid] = $grade;
-    }
+    try {
+        $grades = $DB->get_records_select('observationchecklist_grades', $where, $params);
+        
+        $return = array();
+        foreach ($grades as $grade) {
+            $return[$grade->userid] = $grade;
+        }
 
-    return $return;
+        return $return;
+    } catch (Exception $e) {
+        debugging('Error getting user grades: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return array();
+    }
 }
 
 /**

@@ -46,6 +46,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="position" UNIQUE="false" FIELDS="position"/>
+        <INDEX NAME="checklistid_position" UNIQUE="false" FIELDS="checklistid,position"/>
       </INDEXES>
     </TABLE>
     
@@ -72,6 +73,7 @@
       <INDEXES>
         <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
         <INDEX NAME="unique_user_item" UNIQUE="true" FIELDS="itemid,userid"/>
+        <INDEX NAME="checklistid_userid" UNIQUE="false" FIELDS="checklistid,userid"/>
       </INDEXES>
     </TABLE>
 
