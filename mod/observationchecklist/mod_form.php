@@ -69,17 +69,20 @@ class mod_observationchecklist_mod_form extends moodleform_mod {
         // Allow students to add items
         $mform->addElement('advcheckbox', 'allowstudentadd', get_string('allowstudentadd', 'observationchecklist'));
         $mform->addHelpButton('allowstudentadd', 'allowstudentadd', 'observationchecklist');
-        $mform->setDefault('allowstudentadd', get_config('mod_observationchecklist', 'defaultallowstudentadd'));
+        $mform->setDefault('allowstudentadd', 1);
 
         // Allow student submissions
         $mform->addElement('advcheckbox', 'allowstudentsubmit', get_string('allowstudentsubmit', 'observationchecklist'));
         $mform->addHelpButton('allowstudentsubmit', 'allowstudentsubmit', 'observationchecklist');
-        $mform->setDefault('allowstudentsubmit', get_config('mod_observationchecklist', 'defaultallowstudentsubmit'));
+        $mform->setDefault('allowstudentsubmit', 1);
 
         // Enable printing
         $mform->addElement('advcheckbox', 'enableprinting', get_string('enableprinting', 'observationchecklist'));
         $mform->addHelpButton('enableprinting', 'enableprinting', 'observationchecklist');
-        $mform->setDefault('enableprinting', get_config('mod_observationchecklist', 'defaultenableprinting'));
+        $mform->setDefault('enableprinting', 1);
+
+        // Grade settings
+        $this->standard_grading_coursemodule_elements();
 
         // Add standard elements.
         $this->standard_coursemodule_elements();

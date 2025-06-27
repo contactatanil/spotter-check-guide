@@ -24,7 +24,6 @@
  */
 
 require(__DIR__.'/../../config.php');
-
 require_once(__DIR__.'/lib.php');
 
 $id = required_param('id', PARAM_INT);
@@ -35,10 +34,7 @@ require_course_login($course);
 
 $coursecontext = context_course::instance($course->id);
 
-$event = \mod_observationchecklist\event\course_module_instance_list_viewed::create(array(
-    'context' => $modulecontext
-));
-$event->add_record_snapshot('course', $course);
+$event = \mod_observationchecklist\event\course_module_instance_list_viewed::create_from_course($course);
 $event->trigger();
 
 $PAGE->set_url('/mod/observationchecklist/index.php', array('id' => $id));

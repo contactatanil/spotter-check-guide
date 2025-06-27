@@ -25,14 +25,22 @@ function observationchecklist_supports($feature) {
             return true;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
             return true;
+        case FEATURE_COMPLETION_HAS_RULES:
+            return true;
         case FEATURE_GRADE_HAS_GRADE:
-            return false;
+            return true;
         case FEATURE_GRADE_OUTCOMES:
-            return false;
+            return true;
         case FEATURE_BACKUP_MOODLE2:
             return true;
         case FEATURE_MOD_PURPOSE:
             return MOD_PURPOSE_ASSESSMENT;
+        case FEATURE_PLAGIARISM:
+            return false;
+        case FEATURE_GROUPS:
+            return false;
+        case FEATURE_GROUPINGS:
+            return false;
         default:
             return null;
     }
@@ -55,8 +63,19 @@ function observationchecklist_add_instance(stdClass $observationchecklist, mod_o
     $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
     $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
     $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
+    $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
+
+    // Grading settings
+    if (!isset($observationchecklist->grade)) {
+        $observationchecklist->grade = 100;
+    }
+    if (!isset($observationchecklist->grademethod)) {
+        $observationchecklist->grademethod = 0;
+    }
 
     $observationchecklist->id = $DB->insert_record('observationchecklist', $observationchecklist);
+
+    observationchecklist_grade_item_update($observationchecklist);
 
     return $observationchecklist->id;
 }
@@ -78,8 +97,13 @@ function observationchecklist_update_instance(stdClass $observationchecklist, mo
     $observationchecklist->allowstudentadd = isset($observationchecklist->allowstudentadd) ? 1 : 0;
     $observationchecklist->allowstudentsubmit = isset($observationchecklist->allowstudentsubmit) ? 1 : 0;
     $observationchecklist->enableprinting = isset($observationchecklist->enableprinting) ? 1 : 0;
+    $observationchecklist->completionpass = isset($observationchecklist->completionpass) ? 1 : 0;
 
-    return $DB->update_record('observationchecklist', $observationchecklist);
+    $result = $DB->update_record('observationchecklist', $observationchecklist);
+
+    observationchecklist_grade_item_update($observationchecklist);
+
+    return $result;
 }
 
 /**
@@ -98,11 +122,111 @@ function observationchecklist_delete_instance($id) {
     // Delete related records
     $DB->delete_records('observationchecklist_items', array('checklistid' => $id));
     $DB->delete_records('observationchecklist_user_items', array('checklistid' => $id));
+    $DB->delete_records('observationchecklist_grades', array('checklistid' => $id));
+    
+    // Delete grade item
+    observationchecklist_grade_item_delete($observationchecklist);
     
     // Delete the instance
     $DB->delete_records('observationchecklist', array('id' => $id));
 
     return true;
+}
+
+/**
+ * Create/update grade item for given observationchecklist
+ *
+ * @param stdClass $observationchecklist object with extra cmidnumber
+ * @param mixed $grades optional array/object of grade(s); 'reset' means reset grades in gradebook
+ * @return int 0 if ok, error code otherwise
+ */
+function observationchecklist_grade_item_update($observationchecklist, $grades = null) {
+    global $CFG;
+    require_once($CFG->libdir.'/gradelib.php');
+
+    $params = array('itemname' => $observationchecklist->name, 'idnumber' => $observationchecklist->cmidnumber ?? null);
+
+    if ($observationchecklist->grade > 0) {
+        $params['gradetype'] = GRADE_TYPE_VALUE;
+        $params['grademax']  = $observationchecklist->grade;
+        $params['grademin']  = 0;
+    } else if ($observationchecklist->grade < 0) {
+        $params['gradetype'] = GRADE_TYPE_SCALE;
+        $params['scaleid']   = -$observationchecklist->grade;
+    } else {
+        $params['gradetype'] = GRADE_TYPE_NONE;
+    }
+
+    if ($grades === 'reset') {
+        $params['reset'] = true;
+        $grades = null;
+    }
+
+    return grade_update('mod/observationchecklist', $observationchecklist->course, 'mod', 'observationchecklist', $observationchecklist->id, 0, $grades, $params);
+}
+
+/**
+ * Delete grade item for given observationchecklist
+ *
+ * @param stdClass $observationchecklist object
+ * @return int
+ */
+function observationchecklist_grade_item_delete($observationchecklist) {
+    global $CFG;
+    require_once($CFG->libdir.'/gradelib.php');
+
+    return grade_update('mod/observationchecklist', $observationchecklist->course, 'mod', 'observationchecklist', $observationchecklist->id, 0, null, array('deleted' => 1));
+}
+
+/**
+ * Update grades in the gradebook
+ *
+ * @param stdClass $observationchecklist
+ * @param int $userid specific user only, 0 means all
+ * @param bool $nullifnone
+ */
+function observationchecklist_update_grades($observationchecklist, $userid = 0, $nullifnone = true) {
+    global $CFG, $DB;
+    require_once($CFG->libdir.'/gradelib.php');
+
+    if ($grades = observationchecklist_get_user_grades($observationchecklist, $userid)) {
+        observationchecklist_grade_item_update($observationchecklist, $grades);
+    } else if ($userid && $nullifnone) {
+        $grade = new stdClass();
+        $grade->userid = $userid;
+        $grade->rawgrade = null;
+        observationchecklist_grade_item_update($observationchecklist, $grade);
+    } else {
+        observationchecklist_grade_item_update($observationchecklist);
+    }
+}
+
+/**
+ * Get user grades for observationchecklist
+ *
+ * @param stdClass $observationchecklist
+ * @param int $userid
+ * @return array
+ */
+function observationchecklist_get_user_grades($observationchecklist, $userid = 0) {
+    global $DB;
+
+    $where = "checklistid = ?";
+    $params = array($observationchecklist->id);
+
+    if ($userid) {
+        $where .= " AND userid = ?";
+        $params[] = $userid;
+    }
+
+    $grades = $DB->get_records_select('observationchecklist_grades', $where, $params);
+    
+    $return = array();
+    foreach ($grades as $grade) {
+        $return[$grade->userid] = $grade;
+    }
+
+    return $return;
 }
 
 /**
@@ -176,6 +300,77 @@ function observationchecklist_user_complete($course, $user, $mod, $observationch
     } else {
         echo get_string('nodata', 'observationchecklist');
     }
+}
+
+/**
+ * Implementation of the function for printing the form elements that control
+ * whether the course reset functionality affects the observationchecklist.
+ *
+ * @param $mform form passed by reference
+ */
+function observationchecklist_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'observationchecklistheader', get_string('modulenameplural', 'observationchecklist'));
+    $mform->addElement('advcheckbox', 'reset_observationchecklist_all', get_string('deleteallsubmissions', 'observationchecklist'));
+}
+
+/**
+ * Course reset form defaults.
+ * @param object $course
+ * @return array
+ */
+function observationchecklist_reset_course_form_defaults($course) {
+    return array('reset_observationchecklist_all' => 1);
+}
+
+/**
+ * Removes all grades from gradebook
+ *
+ * @param int $courseid
+ * @param string optional type
+ */
+function observationchecklist_reset_gradebook($courseid, $type='') {
+    global $DB;
+
+    $sql = "SELECT o.*, cm.idnumber as cmidnumber, o.course as courseid
+            FROM {observationchecklist} o, {course_modules} cm, {modules} m
+            WHERE m.name='observationchecklist' AND m.id=cm.module AND cm.instance=o.id AND o.course=?";
+
+    if ($observationchecklists = $DB->get_records_sql($sql, array($courseid))) {
+        foreach ($observationchecklists as $observationchecklist) {
+            observationchecklist_grade_item_update($observationchecklist, 'reset');
+        }
+    }
+}
+
+/**
+ * Actual implementation of the reset course functionality, delete all the
+ * observationchecklist responses for course $data->courseid.
+ *
+ * @param stdClass $data the data submitted from the reset course.
+ * @return array status array
+ */
+function observationchecklist_reset_userdata($data) {
+    global $DB;
+
+    $componentstr = get_string('modulenameplural', 'observationchecklist');
+    $status = array();
+
+    if (!empty($data->reset_observationchecklist_all)) {
+        $observationchecklistssql = "SELECT o.id FROM {observationchecklist} o WHERE o.course=?";
+        $params = array($data->courseid);
+
+        $DB->delete_records_select('observationchecklist_user_items', "checklistid IN ($observationchecklistssql)", $params);
+        $DB->delete_records_select('observationchecklist_grades', "checklistid IN ($observationchecklistssql)", $params);
+
+        $status[] = array('component' => $componentstr, 'item' => get_string('deleteallsubmissions', 'observationchecklist'), 'error' => false);
+
+        // Remove all grades from gradebook
+        if (empty($data->reset_gradebook_grades)) {
+            observationchecklist_reset_gradebook($data->courseid);
+        }
+    }
+
+    return $status;
 }
 
 /**
