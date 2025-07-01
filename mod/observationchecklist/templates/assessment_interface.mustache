@@ -1,4 +1,3 @@
-
 <div class="assessment-interface-container">
     <div class="row">
         <!-- Header with Multi-Student Link -->
@@ -126,3 +125,287 @@
         </div>
     </div>
 </div>
+
+<script>
+let currentStudentId = null;
+let checklistItems = [];
+let cmId = {{cmid}};
+
+// Load student assessment data
+function loadStudentAssessment() {
+    const studentSelector = document.getElementById('studentSelector');
+    const studentId = studentSelector.value;
+    
+    if (!studentId) {
+        hideStudentAssessment();
+        return;
+    }
+    
+    currentStudentId = studentId;
+    
+    // Show loading state
+    showLoadingState();
+    
+    // Make AJAX call to get student progress
+    fetch('{{actionurl}}ajax_get_student_progress.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `id=${cmId}&userid=${studentId}&sesskey={{sesskey}}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayStudentAssessment(data.student, data.items, data.progress);
+        } else {
+            console.error('Error loading student data:', data.error);
+            showError('Failed to load student assessment data.');
+        }
+    })
+    .catch(error => {
+        console.error('Network error:', error);
+        showError('Network error occurred while loading student data.');
+    });
+}
+
+// Display student assessment interface
+function displayStudentAssessment(student, items, progress) {
+    // Update student statistics
+    updateStudentStats(progress);
+    
+    // Show assessment area
+    document.getElementById('assessmentItemsArea').style.display = 'block';
+    document.getElementById('noStudentMessage').style.display = 'none';
+    document.getElementById('studentStatsDisplay').style.display = 'block';
+    
+    // Load assessment items
+    loadAssessmentItems(items, progress);
+}
+
+// Update student statistics display
+function updateStudentStats(progress) {
+    let satisfactory = 0;
+    let notSatisfactory = 0;
+    let total = 0;
+    
+    for (let itemId in progress) {
+        total++;
+        if (progress[itemId].status === 'satisfactory') {
+            satisfactory++;
+        } else if (progress[itemId].status === 'not_satisfactory') {
+            notSatisfactory++;
+        }
+    }
+    
+    const progressPercentage = total > 0 ? Math.round(((satisfactory + notSatisfactory) / total) * 100) : 0;
+    
+    document.getElementById('studentSatisfactory').textContent = satisfactory;
+    document.getElementById('studentNotSatisfactory').textContent = notSatisfactory;
+    document.getElementById('studentProgress').textContent = progressPercentage + '%';
+}
+
+// Load assessment items into the interface
+function loadAssessmentItems(items, progress) {
+    const itemsList = document.getElementById('assessmentItemsList');
+    const template = document.getElementById('assessmentItemTemplate');
+    
+    itemsList.innerHTML = '';
+    checklistItems = items;
+    
+    items.forEach(item => {
+        const itemElement = template.cloneNode(true);
+        itemElement.style.display = 'block';
+        itemElement.id = 'assessment-item-' + item.id;
+        itemElement.setAttribute('data-itemid', item.id);
+        
+        // Set item content
+        itemElement.querySelector('.item-title').textContent = item.itemtext;
+        itemElement.querySelector('.item-category').textContent = item.category;
+        
+        // Set current status
+        const currentProgress = progress[item.id];
+        const currentStatus = currentProgress ? currentProgress.status : 'not_started';
+        const statusBadge = itemElement.querySelector('.current-status-badge');
+        
+        updateStatusBadge(statusBadge, currentStatus);
+        
+        // Set form values
+        const statusSelect = itemElement.querySelector('.status-select');
+        const notesTextarea = itemElement.querySelector('.notes-textarea');
+        
+        statusSelect.value = currentStatus;
+        if (currentProgress && currentProgress.assessornotes) {
+            notesTextarea.value = currentProgress.assessornotes;
+        }
+        
+        // Add event listeners
+        statusSelect.addEventListener('change', function() {
+            updateItemStatus(item.id, this.value, notesTextarea.value);
+        });
+        
+        notesTextarea.addEventListener('blur', function() {
+            updateItemStatus(item.id, statusSelect.value, this.value);
+        });
+        
+        itemsList.appendChild(itemElement);
+    });
+}
+
+// Update status badge appearance
+function updateStatusBadge(badge, status) {
+    badge.className = 'badge current-status-badge';
+    
+    switch (status) {
+        case 'satisfactory':
+            badge.classList.add('bg-success');
+            badge.textContent = '{{#str}}satisfactory, mod_observationchecklist{{/str}}';
+            break;
+        case 'not_satisfactory':
+            badge.classList.add('bg-danger');
+            badge.textContent = '{{#str}}notsatisfactory, mod_observationchecklist{{/str}}';
+            break;
+        case 'in_progress':
+            badge.classList.add('bg-warning');
+            badge.textContent = '{{#str}}inprogress, mod_observationchecklist{{/str}}';
+            break;
+        default:
+            badge.classList.add('bg-secondary');
+            badge.textContent = '{{#str}}notstarted, mod_observationchecklist{{/str}}';
+    }
+}
+
+// Update individual item status
+function updateItemStatus(itemId, status, notes) {
+    if (!currentStudentId) return;
+    
+    fetch('{{actionurl}}ajax_assess_item.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `id=${cmId}&userid=${currentStudentId}&itemid=${itemId}&status=${status}&notes=${encodeURIComponent(notes)}&sesskey={{sesskey}}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update status badge
+            const itemElement = document.getElementById('assessment-item-' + itemId);
+            const statusBadge = itemElement.querySelector('.current-status-badge');
+            updateStatusBadge(statusBadge, status);
+            
+            // Refresh statistics
+            loadStudentAssessment();
+        } else {
+            console.error('Error updating assessment:', data.error);
+            showError('Failed to save assessment.');
+        }
+    })
+    .catch(error => {
+        console.error('Network error:', error);
+        showError('Network error occurred while saving assessment.');
+    });
+}
+
+// Save all assessments at once
+function saveAllAssessments() {
+    if (!currentStudentId) {
+        showError('No student selected.');
+        return;
+    }
+    
+    const assessments = [];
+    const itemElements = document.querySelectorAll('[data-itemid]');
+    
+    itemElements.forEach(element => {
+        const itemId = element.getAttribute('data-itemid');
+        const status = element.querySelector('.status-select').value;
+        const notes = element.querySelector('.notes-textarea').value;
+        
+        assessments.push({
+            itemid: itemId,
+            status: status,
+            notes: notes
+        });
+    });
+    
+    fetch('{{actionurl}}ajax_save_all_assessments.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `id=${cmId}&userid=${currentStudentId}&assessments=${encodeURIComponent(JSON.stringify(assessments))}&sesskey={{sesskey}}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('All assessments saved successfully.');
+            loadStudentAssessment(); // Refresh the display
+        } else {
+            console.error('Error saving assessments:', data.error);
+            showError('Failed to save all assessments.');
+        }
+    })
+    .catch(error => {
+        console.error('Network error:', error);
+        showError('Network error occurred while saving assessments.');
+    });
+}
+
+// Hide student assessment interface
+function hideStudentAssessment() {
+    document.getElementById('assessmentItemsArea').style.display = 'none';
+    document.getElementById('noStudentMessage').style.display = 'block';
+    document.getElementById('studentStatsDisplay').style.display = 'none';
+    currentStudentId = null;
+}
+
+// Show loading state
+function showLoadingState() {
+    document.getElementById('assessmentItemsList').innerHTML = '<div class="text-center p-4"><i class="fa fa-spinner fa-spin"></i> Loading...</div>';
+    document.getElementById('assessmentItemsArea').style.display = 'block';
+    document.getElementById('noStudentMessage').style.display = 'none';
+}
+
+// Show error message
+function showError(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.assessment-interface-container').insertBefore(alert, document.querySelector('.row'));
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 5000);
+}
+
+// Show success message
+function showSuccess(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.assessment-interface-container').insertBefore(alert, document.querySelector('.row'));
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 3000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear any existing student selection
+    hideStudentAssessment();
+});
+</script>
